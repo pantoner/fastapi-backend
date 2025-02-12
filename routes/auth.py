@@ -1,59 +1,88 @@
-from fastapi import FastAPI, Depends
-from fastapi_users import FastAPIUsers
-from fastapi_users.db import SQLAlchemyUserDatabase
-from fastapi_users.authentication.strategy import JWTStrategy
-from fastapi_users.authentication import AuthenticationBackend, CookieTransport
-from fastapi_users.manager import BaseUserManager
-from fastapi_users import UUIDIDMixin
-from sqlalchemy.ext.asyncio import AsyncSession
-from database import engine, get_async_session, Base
-from models.user import User, UserRead, UserCreate, UserUpdate  # ✅ Import Pydantic models
+from fastapi import APIRouter, HTTPException, Depends, Header
+from pydantic import BaseModel
+import json
+import os
+import jwt  # JWT for authentication
+from datetime import datetime, timedelta
 
-# ✅ Define JWT Transport (Handles token storage in cookies)
-jwt_transport = CookieTransport(cookie_max_age=3600)
+auth_router = APIRouter()
 
-# ✅ Secret key for JWT tokens
-SECRET = "your_secret_key_here"
+USER_DATA_FILE = "users.json"
+SECRET_KEY = "your_secret_key_here"
+ALGORITHM = "HS256"
+TOKEN_EXPIRATION_MINUTES = 30
 
-# ✅ Define JWT Strategy
-def get_jwt_strategy():
-    return JWTStrategy(secret=SECRET, lifetime_seconds=3600)
+class UserRegister(BaseModel):
+    name: str
+    email: str
+    password: str
 
-# ✅ Define authentication backend
-auth_backend = AuthenticationBackend(
-    name="jwt",
-    transport=jwt_transport,
-    get_strategy=get_jwt_strategy,
-)
+class UserLogin(BaseModel):
+    email: str
+    password: str
 
-# ✅ Create user database adapter as a dependency
-async def get_user_db(session: AsyncSession = Depends(get_async_session)):
-    yield SQLAlchemyUserDatabase(session, User)
+def load_users():
+    """Load user data from JSON file."""
+    if not os.path.exists(USER_DATA_FILE):
+        return []
+    
+    with open(USER_DATA_FILE, "r") as file:
+        return json.load(file)
 
-# ✅ Define User Manager (Required for FastAPI Users v14+)
-class UserManager(UUIDIDMixin, BaseUserManager[User, int]):
-    user_db_model = User
-    reset_password_token_secret = SECRET
-    verification_token_secret = SECRET
+def save_users(users):
+    """Save user data to JSON file."""
+    with open(USER_DATA_FILE, "w") as file:
+        json.dump(users, file, indent=4)
 
-async def get_user_manager(user_db=Depends(get_user_db)):
-    yield UserManager(user_db)
+def create_jwt_token(email: str):
+    """Generate a JWT token for authentication."""
+    expiration = datetime.utcnow() + timedelta(minutes=TOKEN_EXPIRATION_MINUTES)
+    payload = {"sub": email, "exp": expiration}
+    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
-# ✅ FastAPI Users manager (Updated for v14+)
-fastapi_users = FastAPIUsers(
-    get_user_manager,  # ✅ Use UserManager instead of get_user_db
-    [auth_backend],
-)
+def decode_jwt_token(token: str):
+    """Decode and verify a JWT token."""
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload["sub"]
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token has expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
 
-# ✅ Authentication routes
-auth_router = fastapi_users.get_auth_router(auth_backend)
-register_router = fastapi_users.get_register_router(UserRead, UserCreate)  # ✅ Fixed!
+def get_current_user(authorization: str = Header(None)):
+    """Extract user from JWT token in Authorization header."""
+    if authorization is None or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Invalid or missing token")
+    
+    token = authorization.split("Bearer ")[1]
+    return decode_jwt_token(token)
 
-# ✅ Create FastAPI app and include routes
-app = FastAPI()
-app.include_router(auth_router, prefix="/auth", tags=["auth"])
-app.include_router(register_router, prefix="/auth", tags=["auth"])
+@auth_router.post("/register")
+def register_user(user: UserRegister):
+    users = load_users()
 
-@app.get("/")
-def read_root():
-    return {"message": "Hello, World!"}
+    for u in users:
+        if u["email"] == user.email:
+            raise HTTPException(status_code=400, detail="User already exists")
+
+    new_user = user.dict()
+    users.append(new_user)
+    save_users(users)
+
+    return {"message": "User registered successfully"}
+
+@auth_router.post("/login")
+def login(user: UserLogin):
+    users = load_users()
+
+    for u in users:
+        if u["email"] == user.email and u["password"] == user.password:
+            token = create_jwt_token(user.email)
+            return {"access_token": token, "token_type": "Bearer"}
+
+    raise HTTPException(status_code=401, detail="Invalid credentials")
+
+@auth_router.get("/me")
+def get_user_details(current_user: str = Depends(get_current_user)):
+    return {"email": current_user}
