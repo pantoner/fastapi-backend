@@ -1,11 +1,12 @@
 from fastapi import APIRouter, HTTPException, Depends, Header
 from pydantic import BaseModel
 import requests
+import os
 
 chat_router = APIRouter()
 
 # Google Gemini API Key
-GEMINI_API_KEY = "AIzaSyAOdIo9PawJQ_XbiRn6BvS1HXJnVogVpl0"
+GEMINI_API_KEY =  = os.getenv("GEMINI_API_KEY")
 GEMINI_API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
 
 class ChatRequest(BaseModel):
