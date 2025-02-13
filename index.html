@@ -38,7 +38,13 @@
 
             if (response.ok) {
                 localStorage.setItem("token", data.access_token);
-                document.getElementById("loginMessage").innerText = "Login successful!";
+                document.getElementById("loginMessage").innerText = "Login successful! Redirecting...";
+
+                // ✅ Redirect to chat.html after 1 second
+                setTimeout(() => {
+                    window.location.href = "chat.html";
+                }, 1000);
+
             } else {
                 document.getElementById("loginMessage").innerText = "Login failed: " + data.detail;
             }
