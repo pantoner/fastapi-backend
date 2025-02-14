@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import requests
 
@@ -13,27 +13,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ✅ Google Gemini API Configuration
 GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent"
-GEMINI_API_KEY = "AIzaSyAOdIo9PawJQ_XbiRn6BvS1HXJnVogVpl0"  # Replace with your actual API key
+GEMINI_API_KEY = "YOUR_API_KEY"  # Replace with your actual API key
 
-# ✅ API Route: List Existing Projects
-@app.get("/list-projects")
-def get_projects():
-    return list_projects()
-
-# ✅ API Route: Create a New Project (Automatically Uses Default Workflow)
-@app.post("/create-project")
-def new_project(data: dict):
-    project_name = data.get("project_name")
-    return create_project(project_name)
-
-# ✅ API Route: Delete a Project
-@app.delete("/delete-project")
-def remove_project(data: dict):
-    project_name = data.get("project_name")
-    return delete_project(project_name)
-
-
+# ✅ Chat Endpoint
 @app.post("/chat")
 async def chat_with_gpt(chat_request: dict):
     """Send user input to Google Gemini API and return response."""
@@ -54,4 +38,4 @@ async def chat_with_gpt(chat_request: dict):
     # Extract AI response
     gpt_response = response_data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "No response received")
 
-    return {"response": gpt_response}    
+    return {"response": gpt_response}
