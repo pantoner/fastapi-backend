@@ -24,13 +24,17 @@ if not GEMINI_API_KEY:
 
 GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent"
 
-# ✅ Path to users.json file
+# ✅ Paths to JSON files
 USERS_FILE = "users.json"
+CHAT_HISTORY_FILE = "chat_history.json"
 
-# ✅ Pydantic Model for Login Request
+# ✅ Pydantic Models
 class LoginRequest(BaseModel):
     email: str
     password: str
+
+class ChatRequest(BaseModel):
+    message: str
 
 # ✅ Function to Load Users from JSON File
 def load_users():
@@ -38,6 +42,19 @@ def load_users():
         return []
     with open(USERS_FILE, "r") as f:
         return json.load(f)
+
+# ✅ Function to Load Chat History
+def load_chat_history():
+    if not os.path.exists(CHAT_HISTORY_FILE):
+        return []
+    with open(CHAT_HISTORY_FILE, "r") as f:
+        history = json.load(f)
+    return history[-10:]  # ✅ Keep only the last 10 messages
+
+# ✅ Function to Save Chat History
+def save_chat_history(history):
+    with open(CHAT_HISTORY_FILE, "w") as f:
+        json.dump(history, f, indent=4)
 
 # ✅ API Route: Login Endpoint
 @app.post("/auth/login")
@@ -51,14 +68,28 @@ async def login(request: LoginRequest):
 
     raise HTTPException(status_code=401, detail="Invalid email or password")
 
+# ✅ API Route: Retrieve Chat History
+@app.get("/chat-history")
+async def get_chat_history():
+    """Returns the stored chat history."""
+    return load_chat_history()
+
 # ✅ API Route: Chat with Google Gemini API
 @app.post("/chat")
-async def chat_with_gpt(chat_request: dict):
-    """Send user input to Google Gemini API and return response."""
-    prompt = chat_request.get("message", "")
+async def chat_with_gpt(chat_request: ChatRequest):
+    """Send user input to Google Gemini API along with chat history for context."""
+    chat_history = load_chat_history()  # ✅ Load past chats
+
+    # ✅ Format chat history for LLM
+    formatted_history = "\n".join(
+        [f"You: {entry['user']}\nGPT: {entry['bot']}" for entry in chat_history]
+    )
+
+    # ✅ Add the latest user message
+    full_prompt = f"{formatted_history}\nYou: {chat_request.message}\nGPT:"
 
     payload = {
-        "contents": [{"parts": [{"text": prompt}]}]
+        "contents": [{"parts": [{"text": full_prompt}]}]
     }
 
     headers = {"Content-Type": "application/json"}
@@ -68,8 +99,10 @@ async def chat_with_gpt(chat_request: dict):
         raise HTTPException(status_code=500, detail="Error communicating with Google Gemini API")
 
     response_data = response.json()
-
-    # Extract AI response
     gpt_response = response_data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "No response received")
 
-    return {"response": gpt_response}
+    # ✅ Save chat history
+    chat_history.append({"user": chat_request.message, "bot": gpt_response})
+    save_chat_history(chat_history)
+
+    return {"response": gpt_response, "history": chat_history}
