@@ -1,11 +1,15 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from routes.artifact import router as artifact_router
 import requests
 import json
 import os
 
 app = FastAPI()
+
+# Include artifact workflow routes
+app.include_router(artifact_router)
 
 # ✅ Enable CORS for frontend communication
 app.add_middleware(
@@ -106,3 +110,6 @@ async def chat_with_gpt(chat_request: ChatRequest):
     save_chat_history(chat_history)
 
     return {"response": gpt_response, "history": chat_history}
+
+
+    

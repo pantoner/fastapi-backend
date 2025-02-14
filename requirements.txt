@@ -1,4 +1,6 @@
 fastapi
 uvicorn
 pyjwt
+pydantic
 requests
+python-dotenv
