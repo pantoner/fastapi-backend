@@ -4,3 +4,4 @@ pyjwt
 pydantic
 requests
 python-dotenv
+pyyaml
