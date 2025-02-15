@@ -49,6 +49,21 @@ def load_artifact():
     with open(ARTIFACT_FILE, "r") as f:
         return json.load(f)
 
+@router.post("/artifact/start")
+async def start_new_artifact():
+    """Initialize a new artifact workflow by setting the first step dynamically."""
+    workflow_steps = load_workflow_index()
+    first_step = workflow_steps[0] if workflow_steps else None
+
+    if not first_step:
+        raise HTTPException(status_code=500, detail="Workflow steps not found in workflowIndex.yaml.")
+
+    artifact = {"current_step": first_step, "data": {}}
+    save_artifact(artifact)
+
+    return {"message": "Artifact workflow started", "next_step": first_step}
+
+
 @router.get("/artifact/step/{step_filename}")
 async def get_step(step_filename: str):
     """Retrieve step details from YAML and check if step exists."""
