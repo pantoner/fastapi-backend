@@ -1,4 +1,4 @@
-step: "Define Business Problem"
+step: "01-define-problem.yaml"
 description: "Identify and refine the core business problem before moving forward."
 input: ["User Conversation"]
 output: "Confirmed Business Problem Statement"
