@@ -135,6 +135,44 @@ async def next_step():
 
     return {"message": "Proceeding to next step.", "next_step": next_step}
 
+
+@router.post("/artifact/step/{step_filename}")
+async def post_step(step_filename: str, step_input: StepInput):
+    """
+    Handle user input for the given step.
+    - Validate the step_filename is valid.
+    - Load the artifact from artifact.json.
+    - Store step_input.response in artifact["data"] if needed.
+    - Possibly run LLM logic or validate user’s text.
+    - Return updated chat or messages so the front-end can display them.
+    """
+    # 1. Validate that step_filename is in workflowIndex.yaml
+    workflow_steps = load_workflow_index()
+    if step_filename not in workflow_steps:
+        raise HTTPException(status_code=404, detail=f"Step '{step_filename}' not found in workflow index.")
+
+    # 2. Load the artifact
+    artifact = load_artifact()
+
+    # 3. If you want to store user response
+    step_config = load_step_config(step_filename)
+    step_name = step_config["step"]  # e.g. "Define Business Problem"
+
+    artifact["data"][step_name] = step_input.response
+    save_artifact(artifact)
+
+    # 4. Optionally handle chat_history or run LLM
+    chat_history = load_chat_history()
+    # For example, append the user's message
+    chat_history.append({"role": "user", "text": step_input.response})
+    # Save it
+    save_chat_history(chat_history)
+
+    return {
+        "message": "User input received and stored.",
+        "chat_history": chat_history
+    }
+
 def get_next_step(current_step, workflow_steps):
     """Determine the next step based on workflow index."""
     try:

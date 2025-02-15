@@ -1,4 +1,4 @@
-step: "01-define-problem.yaml"
+step: "Define Business Problem"
 description: "Identify and refine the core business problem before moving forward."
 input: ["User Conversation"]
 output: "Confirmed Business Problem Statement"
@@ -26,4 +26,4 @@ system_messages:
   waiting_confirmation: "Does this problem statement look correct? Type 'yes' to confirm or edit if needed."
   final_confirmation: "Your problem statement has been confirmed. Moving to the next step: {next_step}."
   move_to_next: "Proceeding to the next step: {next_step}."
-next_step: "step_02_project_direction.yaml"
+next_step: "workflow/02-project-direction.yaml"
