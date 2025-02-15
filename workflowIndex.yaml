@@ -1,15 +1,15 @@
 workflow:
   steps:
-    - 01-define-problem.yaml
-    - 02-project-direction.yaml
-    - 03-define-scope.yaml
-    - 04-define-personas.yaml
-    - 05-use-case-list.yaml
-    - 06-complete-use-cases.yaml
-    - 07-define-brd.yaml
-    - 08-define-frd.yaml
-    - 09-feature-list.yaml
-    - 10-write-features.yaml
-    - 11-traceability-matrix.yaml
-    - 12-user-story-format.yaml
-    - 13-generate-user-stories.yaml
+    - workflow/01-define-problem.yaml
+    - workflow/02-project-direction.yaml
+    - workflow/03-define-scope.yaml
+    - workflow/04-define-personas.yaml
+    - workflow/05-use-case-list.yaml
+    - workflow/06-complete-use-cases.yaml
+    - workflow/07-define-brd.yaml
+    - workflow/08-define-frd.yaml
+    - workflow/09-feature-list.yaml
+    - workflow/10-write-features.yaml
+    - workflow/11-traceability-matrix.yaml
+    - workflow/12-user-story-format.yaml
+    - workflow/13-generate-user-stories.yaml
