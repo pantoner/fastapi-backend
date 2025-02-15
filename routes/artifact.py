@@ -21,12 +21,16 @@ class StepInput(BaseModel):
     response: str
 
 def load_workflow_index():
-    """Load the workflow index file."""
+    """Load and print the workflow index file for debugging."""
     if not os.path.exists(WORKFLOW_INDEX_FILE):
         raise HTTPException(status_code=500, detail="Workflow index file not found.")
-    
+
     with open(WORKFLOW_INDEX_FILE, "r") as f:
-        return yaml.safe_load(f)["workflow"]["steps"]
+        workflow_data = yaml.safe_load(f)
+    
+    print("🔍 DEBUG: Loaded workflowIndex.yaml", workflow_data)  # ✅ Print workflow steps to verify
+    return workflow_data["workflow"]["steps"]
+
 
 def load_step_config(step_filename):
     """Load an individual step YAML file from the workflow/ folder."""
@@ -59,7 +63,9 @@ def load_artifact():
 async def start_new_artifact():
     """Initialize a new artifact workflow and set the first step dynamically."""
     workflow_steps = load_workflow_index()
-    first_step = f"workflow/{workflow_steps[0]}" if workflow_steps else None  # ✅ Ensure `workflow/` is included
+
+    # ✅ Ensure first_step does NOT add "workflow/" again if already included
+    first_step = workflow_steps[0] if workflow_steps[0].startswith("workflow/") else f"workflow/{workflow_steps[0]}"
 
     if not first_step:
         raise HTTPException(status_code=500, detail="Workflow steps not found in workflowIndex.yaml.")
@@ -67,12 +73,16 @@ async def start_new_artifact():
     artifact = {"current_step": first_step, "data": {}}
     save_artifact(artifact)
 
+    print("🔍 DEBUG: Corrected first step:", first_step)  # ✅ Debugging output
+
     return {"message": "Artifact workflow started", "next_step": first_step}
+
 
 @router.get("/artifact/current_step")
 async def get_current_step():
-    """Retrieve the current step from artifact.json."""
+    """Retrieve the current step from artifact.json and debug output."""
     artifact = load_artifact()
+    print("🔍 DEBUG: Loaded artifact.json", artifact)  # ✅ Print artifact.json contents
     return {"current_step": artifact.get("current_step", None)}
 
 @router.get("/artifact/step/{step_filename}")
