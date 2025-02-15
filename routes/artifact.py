@@ -4,17 +4,7 @@ import os
 import requests
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from ai_helpers import correct_spelling, detect_user_mood, enforce_focus, get_llm_response
-from fastapi.middleware.cors import CORSMiddleware
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["https://fastapi-frontend.onrender.com"],  # ✅ Explicitly allow your frontend domain
-    allow_credentials=True,
-    allow_methods=["*"],  # ✅ Allow all methods (POST, GET, etc.)
-    allow_headers=["*"],  # ✅ Allow all headers
-)
-
+from ai_helpers import correct_spelling, detect_user_mood, enforce_focus, get_llm_response  # ✅ Keep existing AI functionality
 
 router = APIRouter()
 
@@ -73,8 +63,6 @@ async def start_new_artifact():
 
     return {"message": "Artifact workflow started", "next_step": first_step}
 
-
-
 @router.get("/artifact/step/{step_filename}")
 async def get_step(step_filename: str):
     """Retrieve step details from YAML and check if step exists."""
@@ -99,6 +87,23 @@ async def get_step(step_filename: str):
         "chat_history": chat_history  # ✅ Return last 10 chat messages
     }
 
+@router.post("/artifact/next_step")
+async def next_step():
+    """Move to the next step in the workflow."""
+    artifact = load_artifact()
+    workflow_steps = load_workflow_index()
+
+    current_step = artifact.get("current_step")
+    next_step = get_next_step(current_step, workflow_steps)
+
+    if not next_step:
+        return {"message": "Workflow complete!", "next_step": "complete"}
+
+    artifact["current_step"] = next_step
+    save_artifact(artifact)
+
+    return {"message": "Proceeding to next step.", "next_step": next_step}
+
 def get_next_step(current_step, workflow_steps):
     """Determine the next step based on workflow index."""
     try:
@@ -106,3 +111,25 @@ def get_next_step(current_step, workflow_steps):
         return workflow_steps[current_index + 1] if current_index + 1 < len(workflow_steps) else "complete"
     except ValueError:
         return "complete"  # Step not found in index
+
+def save_artifact(artifact):
+    """Save artifact data to artifact.json."""
+    with open(ARTIFACT_FILE, "w") as f:
+        json.dump(artifact, f, indent=4)
+
+def load_chat_history():
+    """Load the last 10 chat messages from chat_history.json, or create an empty file if missing."""
+    if not os.path.exists(CHAT_HISTORY_FILE):
+        with open(CHAT_HISTORY_FILE, "w") as f:
+            json.dump([], f)
+        return []
+    
+    with open(CHAT_HISTORY_FILE, "r") as f:
+        history = json.load(f)
+
+    return history[-10:]  # ✅ Keep only the last 10 messages
+
+def save_chat_history(history):
+    """Save chat history to chat_history.json."""
+    with open(CHAT_HISTORY_FILE, "w") as f:
+        json.dump(history, f, indent=4)
