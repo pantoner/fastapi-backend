@@ -4,7 +4,7 @@ import os
 import requests
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from ai_helpers import correct_spelling, detect_user_mood, enforce_focus, get_llm_response  # ✅ Keep existing AI functionality
+from ai_helpers import correct_spelling, detect_user_mood, enforce_focus, get_llm_response
 
 router = APIRouter()
 
@@ -21,27 +21,21 @@ class StepInput(BaseModel):
     response: str
 
 def load_workflow_index():
-    """Load the workflow index file and ensure it contains steps."""
+    """Load the workflow index file."""
     if not os.path.exists(WORKFLOW_INDEX_FILE):
         raise HTTPException(status_code=500, detail="Workflow index file not found.")
-
+    
     with open(WORKFLOW_INDEX_FILE, "r") as f:
-        workflow_data = yaml.safe_load(f)
-
-    if "workflow" not in workflow_data or "steps" not in workflow_data["workflow"]:
-        raise HTTPException(status_code=500, detail="Workflow index file is missing required structure.")
-
-    return workflow_data["workflow"]["steps"]
+        return yaml.safe_load(f)["workflow"]["steps"]
 
 def load_step_config(step_filename):
     """Load an individual step YAML file from the workflow/ folder."""
     step_path = os.path.join(WORKFLOW_FOLDER, step_filename)  # ✅ Ensure path includes `workflow/`
     if not os.path.exists(step_path):
-        raise HTTPException(status_code=404, detail=f"Step file {step_path} not found.")
+        raise HTTPException(status_code=500, detail=f"Step file {step_path} not found.")
     
     with open(step_path, "r") as f:
         return yaml.safe_load(f)
-
 
 def load_artifact():
     """Load artifact JSON file or create a new one if missing."""
@@ -55,34 +49,34 @@ def load_artifact():
     with open(ARTIFACT_FILE, "r") as f:
         return json.load(f)
 
-@router.post("/artifact/confirm/{step_filename}")
-async def confirm_step(step_filename: str, input_data: StepInput):
-    """When the user confirms the statement, save it and proceed to the next step."""
+@router.get("/artifact/step/{step_filename}")
+async def get_step(step_filename: str):
+    """Retrieve step details from YAML and check if step exists."""
     workflow_steps = load_workflow_index()
-    step_config = load_step_config(step_filename)
 
+    # ✅ Ensure requested step is in workflow index
+    if step_filename not in workflow_steps:
+        raise HTTPException(status_code=404, detail=f"Step '{step_filename}' not found in workflow index.")
+
+    step_config = load_step_config(step_filename)
     artifact = load_artifact()
     chat_history = load_chat_history()
 
-    last_bot_message = next((msg["text"] for msg in reversed(chat_history) if msg["role"] == "bot"), None)
-    
-    if last_bot_message:
-        artifact["data"][step_config["step"]] = last_bot_message  # ✅ Save the confirmed problem statement
-        save_artifact(artifact)
-
-    next_step = step_config.get("next_step")
-    artifact["current_step"] = next_step if next_step else "complete"
-    save_artifact(artifact)
-
-    # ✅ Tell the LLM that the user has confirmed and to instruct the system to move forward
-    move_to_next_instruction = step_config["llm_prompts"].get("move_to_next_step", "The user has confirmed their problem statement. Proceeding to the next step.")
-    llm_response = get_llm_response(move_to_next_instruction)
-
-    chat_history.append({"role": "bot", "text": llm_response})
-    save_chat_history(chat_history)
-
     return {
-        "message": step_config["system_messages"]["final_confirmation"].replace("{next_step}", artifact["current_step"]),
-        "next_step": step_config["system_messages"]["move_to_next"].replace("{next_step}", artifact["current_step"]),
-        "chat_history": chat_history
+        "step": step_config["step"],
+        "description": step_config.get("description", "No description available."),
+        "input_type": step_config.get("input", ["text"]),
+        "choices": step_config.get("options", []),
+        "rules": step_config.get("rules", []),
+        "next_step": step_config.get("next_step", "complete"),
+        "artifact_data": artifact["data"].get(step_config["step"], ""),
+        "chat_history": chat_history  # ✅ Return last 10 chat messages
     }
+
+def get_next_step(current_step, workflow_steps):
+    """Determine the next step based on workflow index."""
+    try:
+        current_index = workflow_steps.index(current_step)
+        return workflow_steps[current_index + 1] if current_index + 1 < len(workflow_steps) else "complete"
+    except ValueError:
+        return "complete"  # Step not found in index
