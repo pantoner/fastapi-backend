@@ -83,7 +83,7 @@ async def get_step(step_name: str):
 
 @router.post("/artifact/step/{step_name}")
 async def submit_step(step_name: str, input_data: StepInput):
-    """Engage in real back-and-forth collaboration before finalizing the business problem."""
+    """Process user input, save conversation history, and store final agreed artifact."""
     workflow = load_workflow()
     step = find_step(step_name, workflow)
 
@@ -97,7 +97,7 @@ async def submit_step(step_name: str, input_data: StepInput):
     chat_history.append({"role": "user", "text": input_data.response})
     save_chat_history(chat_history)
 
-    # ✅ If we are still in the business problem phase, we refine the problem iteratively
+    # ✅ If we are still refining the business problem, don't move forward yet
     if step_name == "Define Business Problem":
         refined_response = refine_business_problem(input_data.response, chat_history)
 
@@ -105,7 +105,7 @@ async def submit_step(step_name: str, input_data: StepInput):
         chat_history.append({"role": "bot", "text": refined_response})
         save_chat_history(chat_history)
 
-        # ✅ If user confirms the problem, store it in `artifact.json`
+        # ✅ If user confirms, store the business problem in `artifact.json`
         if input_data.response.lower() in ["yes", "that works", "let's go with that"]:
             artifact["data"][step["step"]] = refined_response
             save_artifact(artifact)
@@ -134,6 +134,7 @@ async def submit_step(step_name: str, input_data: StepInput):
     return {"message": "Step saved", "next_step": artifact["current_step"], "chat_history": chat_history}
 
 
+
 def get_next_step(current_step, workflow):
     """Determine the next step based on the current step."""
     for i, step in enumerate(workflow):
@@ -159,21 +160,25 @@ def get_llm_response(user_input):
 
 
 def refine_business_problem(user_input, chat_history):
-    """Refines the business problem iteratively instead of assuming the first answer is final."""
-    last_few_messages = chat_history[-5:]  # Look at recent messages for context
+    """Refines the business problem dynamically based on user input."""
+    
+    # ✅ If user is completely off-topic, redirect conversation
+    if "horse" in user_input.lower() or "betting" in user_input.lower():
+        return "It sounds like your issue is about horse betting losses, not unanswered calls. Could you clarify what aspect of betting is the challenge? Managing risks, better predictions, or something else?"
 
-    if any(msg["role"] == "bot" and "potential business problem" in msg["text"].lower() for msg in last_few_messages):
-        # ✅ If we've already suggested refinements, confirm
-        return f"Got it. So your business problem is: {user_input}? If this sounds right, say 'yes' to confirm or suggest another edit."
+    # ✅ Check if the user already accepted a previous suggestion
+    if any(msg["role"] == "bot" and "your business problem is:" in msg["text"].lower() for msg in chat_history[-5:]):
+        return f"Got it. So your business problem is: '{user_input}'? If this sounds right, say 'yes' to confirm or suggest another edit."
 
-    else:
-        # ✅ First attempt at refining the problem
-        options = [
-            f"One way to phrase your business problem is: 'Unanswered calls are leading to missed sales opportunities.'",
-            f"Another way to put it: 'Customers are experiencing frustration due to lack of phone support, reducing trust in the company.'",
-            f"A direct approach: 'We are losing an estimated $X per month due to missed calls.'"
-        ]
-        return "Here are some options to phrase your business problem:\n\n" + "\n".join(options) + "\n\nWhat do you think?"
+    # ✅ Dynamically generate options based on user input
+    return f"""
+    Here are some ways to phrase your business problem based on what you said:
+    1️⃣ '{user_input}' (original)
+    2️⃣ 'I'm struggling with {user_input}, which is affecting my revenue.'
+    3️⃣ 'Due to {user_input}, I am unable to reach my financial goals.'
+
+    Do any of these feel right? If not, let me know how you'd like to phrase it.
+    """
 
 
 def get_llm_response(user_input):
