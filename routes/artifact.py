@@ -83,7 +83,7 @@ async def get_step(step_name: str):
 
 @router.post("/artifact/step/{step_name}")
 async def submit_step(step_name: str, input_data: StepInput):
-    """Process user input, save conversation history, and store final agreed artifact."""
+    """Process user input, refine business problem interactively, and confirm before moving forward."""
     workflow = load_workflow()
     step = find_step(step_name, workflow)
 
@@ -97,7 +97,7 @@ async def submit_step(step_name: str, input_data: StepInput):
     chat_history.append({"role": "user", "text": input_data.response})
     save_chat_history(chat_history)
 
-    # ✅ If we are still refining the business problem, don't move forward yet
+    # ✅ Handle business problem refinement separately
     if step_name == "Define Business Problem":
         refined_response = refine_business_problem(input_data.response, chat_history)
 
@@ -105,12 +105,14 @@ async def submit_step(step_name: str, input_data: StepInput):
         chat_history.append({"role": "bot", "text": refined_response})
         save_chat_history(chat_history)
 
-        # ✅ If user confirms, store the business problem in `artifact.json`
-        if input_data.response.lower() in ["yes", "that works", "let's go with that"]:
-            artifact["data"][step["step"]] = refined_response
-            save_artifact(artifact)
-            next_step = get_next_step(step["step"], workflow)
-            artifact["current_step"] = next_step if next_step else "complete"
+        # ✅ If user confirms the refined business problem, save it
+        if is_confirmation(input_data.response):
+            last_bot_message = next((msg["text"] for msg in reversed(chat_history) if msg["role"] == "bot"), None)
+            if last_bot_message:
+                artifact["data"][step["step"]] = last_bot_message  # ✅ Save the confirmed business problem
+                save_artifact(artifact)
+                next_step = get_next_step(step["step"], workflow)
+                artifact["current_step"] = next_step if next_step else "complete"
         else:
             next_step = step_name  # Stay in this step until user confirms
 
@@ -120,7 +122,7 @@ async def submit_step(step_name: str, input_data: StepInput):
         chat_history.append({"role": "bot", "text": refined_response})
         save_chat_history(chat_history)
 
-        if input_data.response.lower() in ["yes", "approved"]:
+        if is_confirmation(input_data.response):
             last_llm_message = next((msg["text"] for msg in reversed(chat_history) if msg["role"] == "bot"), None)
             if last_llm_message:
                 artifact["data"][step["step"]] = last_llm_message
@@ -132,6 +134,7 @@ async def submit_step(step_name: str, input_data: StepInput):
     save_artifact(artifact)
 
     return {"message": "Step saved", "next_step": artifact["current_step"], "chat_history": chat_history}
+
 
 
 
@@ -160,31 +163,25 @@ def get_llm_response(user_input):
 
 
 def refine_business_problem(user_input, chat_history):
-    """Refines the business problem dynamically based on user input."""
-    
-    # ✅ If user is completely off-topic, redirect conversation
+    """Dynamically refines the business problem and ensures confirmation before finalizing."""
+
+    # ✅ If user confirms, return the last suggested problem statement
+    if is_confirmation(user_input):
+        last_bot_message = next((msg["text"] for msg in reversed(chat_history) if msg["role"] == "bot"), None)
+        return f"Got it! Your final business problem is: {last_bot_message}. Moving to the next step."
+
+    # ✅ Check for off-topic input and guide user back
     if "horse" in user_input.lower() or "betting" in user_input.lower():
-        return "It sounds like your issue is about horse betting losses, not unanswered calls. Could you clarify what aspect of betting is the challenge? Managing risks, better predictions, or something else?"
+        return "It sounds like you're talking about horse betting. Are you trying to solve a financial loss issue? Let me know how I can help!"
 
-    # ✅ Check if the user already accepted a previous suggestion
-    if any(msg["role"] == "bot" and "your business problem is:" in msg["text"].lower() for msg in chat_history[-5:]):
-        return f"Got it. So your business problem is: '{user_input}'? If this sounds right, say 'yes' to confirm or suggest another edit."
-
-    # ✅ Dynamically generate options based on user input
-    return f"""
-    Here are some ways to phrase your business problem based on what you said:
-    1️⃣ '{user_input}' (original)
-    2️⃣ 'I'm struggling with {user_input}, which is affecting my revenue.'
-    3️⃣ 'Due to {user_input}, I am unable to reach my financial goals.'
-
-    Do any of these feel right? If not, let me know how you'd like to phrase it.
-    """
+    # ✅ Use an LLM to improve refinement dynamically
+    return get_llm_refinement(user_input)
 
 
-def get_llm_response(user_input):
-    """Call Google Gemini API to generate a refined response that continues the conversation."""
+def get_llm_refinement(user_input):
+    """Call Google Gemini API to refine business problem statement dynamically."""
     payload = {
-        "contents": [{"parts": [{"text": f"Refine this user input into a more detailed statement and provide a follow-up question to keep the conversation going: {user_input}"}]}]
+        "contents": [{"parts": [{"text": f"Refine this business problem statement and provide two alternative phrasings: {user_input}"}]}]
     }
 
     headers = {"Content-Type": "application/json"}
@@ -196,5 +193,13 @@ def get_llm_response(user_input):
         return response_data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "No response received")
     
     return "I'm not sure how to refine that. Could you clarify?"
+
+
+
+def is_confirmation(user_input):
+    """Detects if the user confirms a final artifact statement."""
+    confirmation_phrases = ["yes", "that works", "let's go with that", "i like", "option 1", "option 2", "option 3"]
+    return any(phrase in user_input.lower() for phrase in confirmation_phrases)
+
 
 
