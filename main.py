@@ -2,14 +2,18 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from routes.artifact import router as artifact_router
+from ai_helpers import correct_spelling, detect_user_mood, get_llm_response, load_chat_history, save_chat_history
+from routes.contextual_chat import router as contextual_chat_router  # ✅ Import new route
 import requests
 import json
 import os
+from dotenv import load_dotenv
 
 app = FastAPI()
 
 # Include artifact workflow routes
 app.include_router(artifact_router)
+app.include_router(contextual_chat_router)  # ✅ Register contextual chat endpoint
 
 # ✅ Enable CORS for frontend communication
 app.add_middleware(
@@ -19,6 +23,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ✅ Load .env file ONLY in local development
+if not os.getenv("RENDER_EXTERNAL_HOSTNAME"):  # This variable exists only on Render
+    load_dotenv()
 
 # ✅ Load GEMINI API Key from Environment Variable
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
@@ -83,6 +91,8 @@ async def get_chat_history():
 async def chat_with_gpt(chat_request: ChatRequest):
     """Send user input to Google Gemini API along with chat history for context."""
     chat_history = load_chat_history()  # ✅ Load past chats
+    corrected_message = correct_spelling(chat_request.message)
+    mood = detect_user_mood(corrected_message)
 
     # ✅ Format chat history for LLM
     formatted_history = "\n".join(
