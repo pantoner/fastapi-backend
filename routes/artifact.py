@@ -5,6 +5,16 @@ import requests
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from ai_helpers import correct_spelling, detect_user_mood, enforce_focus, get_llm_response
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://fastapi-frontend.onrender.com"],  # ✅ Explicitly allow your frontend domain
+    allow_credentials=True,
+    allow_methods=["*"],  # ✅ Allow all methods (POST, GET, etc.)
+    allow_headers=["*"],  # ✅ Allow all headers
+)
+
 
 router = APIRouter()
 
@@ -51,7 +61,7 @@ def load_artifact():
 
 @router.post("/artifact/start")
 async def start_new_artifact():
-    """Initialize a new artifact workflow by setting the first step dynamically."""
+    """Initialize a new artifact workflow and set the first step dynamically."""
     workflow_steps = load_workflow_index()
     first_step = workflow_steps[0] if workflow_steps else None
 
@@ -62,6 +72,7 @@ async def start_new_artifact():
     save_artifact(artifact)
 
     return {"message": "Artifact workflow started", "next_step": first_step}
+
 
 
 @router.get("/artifact/step/{step_filename}")
