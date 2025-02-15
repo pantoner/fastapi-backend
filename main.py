@@ -2,8 +2,8 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from routes.artifact import router as artifact_router
-from ai_helpers import correct_spelling, detect_user_mood, get_llm_response, load_chat_history, save_chat_history
 from routes.contextual_chat import router as contextual_chat_router  # ✅ Import new route
+from ai_helpers import correct_spelling, detect_user_mood, get_llm_response, load_chat_history, save_chat_history
 import requests
 import json
 import os
@@ -11,17 +11,13 @@ from dotenv import load_dotenv
 
 app = FastAPI()
 
-# Include artifact workflow routes
-app.include_router(artifact_router)
-app.include_router(contextual_chat_router)  # ✅ Register contextual chat endpoint
-
-# ✅ Enable CORS for frontend communication
+# ✅ Enable CORS for frontend communication (restrict to frontend domain)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins (change for security)
+    allow_origins=["https://fastapi-frontend.onrender.com"],  # ✅ Allow frontend requests ONLY
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["*"],  # ✅ Allow all HTTP methods (GET, POST, etc.)
+    allow_headers=["*"],  # ✅ Allow all headers
 )
 
 # ✅ Load .env file ONLY in local development
@@ -32,9 +28,9 @@ if not os.getenv("RENDER_EXTERNAL_HOSTNAME"):  # This variable exists only on Re
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 if not GEMINI_API_KEY:
-    raise RuntimeError("GEMINI_API_KEY environment variable is missing!")
-
-GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent"
+    print("⚠️ Warning: GEMINI_API_KEY environment variable is missing!")
+else:
+    GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent"
 
 # ✅ Paths to JSON files
 USERS_FILE = "users.json"
@@ -121,5 +117,12 @@ async def chat_with_gpt(chat_request: ChatRequest):
 
     return {"response": gpt_response, "history": chat_history}
 
+# ✅ Include artifact and contextual chat routers
+app.include_router(artifact_router)
+app.include_router(contextual_chat_router)  # ✅ Register contextual chat endpoint
 
-    
+# ✅ Start the FastAPI server when running the script directly
+if __name__ == "__main__":
+    import uvicorn
+    print("🚀 Starting FastAPI Server on http://0.0.0.0:8000")
+    uvicorn.run(app, host="0.0.0.0", port=8000)

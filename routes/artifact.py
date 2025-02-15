@@ -45,9 +45,15 @@ def load_artifact():
     if not os.path.exists(ARTIFACT_FILE):
         with open(ARTIFACT_FILE, "w") as f:
             json.dump({"current_step": first_step, "data": {}}, f, indent=4)
-    
-    with open(ARTIFACT_FILE, "r") as f:
-        return json.load(f)
+
+    try:
+        with open(ARTIFACT_FILE, "r") as f:
+            artifact = json.load(f)
+    except json.JSONDecodeError:
+        artifact = {"current_step": first_step, "data": {}}
+        save_artifact(artifact)  # ✅ Reset artifact.json if it's empty or corrupted
+
+    return artifact
 
 @router.post("/artifact/start")
 async def start_new_artifact():
@@ -63,16 +69,29 @@ async def start_new_artifact():
 
     return {"message": "Artifact workflow started", "next_step": first_step}
 
+@router.get("/artifact/current_step")
+async def get_current_step():
+    """Retrieve the current step from artifact.json."""
+    artifact = load_artifact()
+    return {"current_step": artifact.get("current_step", None)}
+
 @router.get("/artifact/step/{step_filename}")
 async def get_step(step_filename: str):
     """Retrieve step details from YAML and check if step exists."""
     workflow_steps = load_workflow_index()
 
-    # ✅ Ensure requested step is in workflow index
-    if step_filename not in workflow_steps:
-        raise HTTPException(status_code=404, detail=f"Step '{step_filename}' not found in workflow index.")
+    decoded_step_filename = requests.utils.unquote(step_filename)  # ✅ Decode filename for accuracy
 
-    step_config = load_step_config(step_filename)
+    # ✅ Ensure requested step is in workflow index
+    if decoded_step_filename not in workflow_steps:
+        raise HTTPException(status_code=404, detail=f"Step '{decoded_step_filename}' not found in workflow index.")
+
+    # ✅ Ensure step file exists
+    try:
+        step_config = load_step_config(decoded_step_filename)
+    except HTTPException:
+        return {"error": f"Step configuration file '{decoded_step_filename}' is missing."}
+
     artifact = load_artifact()
     chat_history = load_chat_history()
 
@@ -96,7 +115,9 @@ async def next_step():
     current_step = artifact.get("current_step")
     next_step = get_next_step(current_step, workflow_steps)
 
-    if not next_step:
+    if next_step == "complete":
+        artifact["current_step"] = "complete"
+        save_artifact(artifact)
         return {"message": "Workflow complete!", "next_step": "complete"}
 
     artifact["current_step"] = next_step
@@ -124,8 +145,12 @@ def load_chat_history():
             json.dump([], f)
         return []
     
-    with open(CHAT_HISTORY_FILE, "r") as f:
-        history = json.load(f)
+    try:
+        with open(CHAT_HISTORY_FILE, "r") as f:
+            history = json.load(f)
+    except json.JSONDecodeError:
+        history = []
+        save_chat_history(history)  # ✅ Reset chat history if it's empty or corrupted
 
     return history[-10:]  # ✅ Keep only the last 10 messages
 
