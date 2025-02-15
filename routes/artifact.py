@@ -21,9 +21,17 @@ class StepInput(BaseModel):
     response: str
 
 def load_workflow_index():
-    """Load the workflow index file."""
+    """Load the workflow index file and ensure it contains steps."""
+    if not os.path.exists(WORKFLOW_INDEX_FILE):
+        raise HTTPException(status_code=500, detail="Workflow index file not found.")
+
     with open(WORKFLOW_INDEX_FILE, "r") as f:
-        return yaml.safe_load(f)["workflow"]["steps"]
+        workflow_data = yaml.safe_load(f)
+
+    if "workflow" not in workflow_data or "steps" not in workflow_data["workflow"]:
+        raise HTTPException(status_code=500, detail="Workflow index file is missing required structure.")
+
+    return workflow_data["workflow"]["steps"]
 
 def load_step_config(step_filename):
     """Load an individual step YAML file from the workflow/ folder."""
@@ -33,6 +41,7 @@ def load_step_config(step_filename):
     
     with open(step_path, "r") as f:
         return yaml.safe_load(f)
+
 
 def load_artifact():
     """Load artifact JSON file or create a new one if missing."""
