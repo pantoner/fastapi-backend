@@ -1,0 +1,31 @@
+step: "Set Project Direction"
+description: "Establish project direction using either a Vision Statement or OKRs."
+input: ["User Choice"]
+options:
+  - "Vision Statement"
+  - "OKRs"
+output: "Project Direction Document"
+rules:
+  - "If OKRs are chosen, objectives must be inspirational and key results measurable."
+  - "If a Vision Statement is chosen, it must describe the future state the project aims to achieve."
+  - "Changes at this stage propagate through all artifacts (scope, requirements, etc.)."
+validation:
+  rules:
+    - "Ensure that project direction aligns with the overall business strategy."
+    - "Vision Statements should be future-focused, concise, and aspirational."
+    - "OKRs must contain clear objectives with at least two measurable key results."
+  prohibited_words:
+    - "unclear"
+    - "vague"
+    - "meaningless"
+  llm_prompts:
+    vision_guidance: "A strong vision statement should clearly define the future state of the project and be inspiring. Rewrite the user's response to improve clarity and ensure it aligns with this guideline."
+    okr_guidance: "For an OKR, ensure the objective is ambitious yet achievable, and key results are measurable. Review and refine the user's response to meet these criteria."
+    ask_confirmation: "You have selected '{selection}'. Would you like to proceed with this choice, or would you like to refine it further?"
+    move_to_next_step: "The user has confirmed their project direction. Instruct the system to proceed to the next step."
+system_messages:
+  prompt_refine: "Here is a refined version of your project direction based on best practices."
+  waiting_confirmation: "Please review the refined statement. Type 'yes' to confirm or suggest improvements."
+  final_confirmation: "Your project direction has been set. Moving to the next step: {next_step}."
+  move_to_next: "Proceeding to the next step: {next_step}."
+next_step: "step_03_define_scope.yaml"

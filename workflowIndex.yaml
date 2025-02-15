@@ -1,0 +1,15 @@
+workflow:
+  steps:
+    - workflow/step_01_define_problem.yaml
+    - workflow/step_02_project_direction.yaml
+    - workflow/step_03_define_scope.yaml
+    - workflow/step_04_define_personas.yaml
+    - workflow/step_05_use_case_list.yaml
+    - workflow/step_06_complete_use_cases.yaml
+    - workflow/step_07_define_brd.yaml
+    - workflow/step_08_define_frd.yaml
+    - workflow/step_09_feature_list.yaml
+    - workflow/step_10_write_features.yaml
+    - workflow/step_11_traceability_matrix.yaml
+    - workflow/step_12_user_story_format.yaml
+    - workflow/step_13_generate_user_stories.yaml
