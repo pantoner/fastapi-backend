@@ -1,12 +1,12 @@
 workflow:
   - step: "Define Business Problem"
-    description: "Identify the core business problem the project aims to solve."
-    input: ["User Input"]
-    output: "Business Problem Statement"
+    description: "Identify and refine the core business problem before moving forward."
+    input: ["User Conversation"]
+    output: "Confirmed Business Problem Statement"
     rules:
-      - "No further steps can proceed without defining the business problem."
-      - "Use a concise format (e.g., 'The problem of X affects Y, resulting in Z') to articulate the scope."
-      - "Align the business problem with high-level objectives or OKRs."
+      - "Keep iterating until the user explicitly confirms the problem statement."
+      - "Offer multiple ways to phrase the problem instead of assuming the first response is correct."
+      - "Once confirmed, store the final statement in artifact.json."
 
   - step: "Set Project Direction"
     description: "Establish project direction using either a Vision Statement or OKRs."

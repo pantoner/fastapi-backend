@@ -83,7 +83,7 @@ async def get_step(step_name: str):
 
 @router.post("/artifact/step/{step_name}")
 async def submit_step(step_name: str, input_data: StepInput):
-    """Process user input, save conversation history, generate LLM response, and store final agreed artifact."""
+    """Engage in real back-and-forth collaboration before finalizing the business problem."""
     workflow = load_workflow()
     step = find_step(step_name, workflow)
 
@@ -97,30 +97,42 @@ async def submit_step(step_name: str, input_data: StepInput):
     chat_history.append({"role": "user", "text": input_data.response})
     save_chat_history(chat_history)
 
-    # ✅ Call LLM API to refine the artifact
-    refined_response = get_llm_response(input_data.response)
+    # ✅ If we are still in the business problem phase, we refine the problem iteratively
+    if step_name == "Define Business Problem":
+        refined_response = refine_business_problem(input_data.response, chat_history)
 
-    # ✅ Save LLM response to chat history
-    chat_history.append({"role": "bot", "text": refined_response})
-    save_chat_history(chat_history)
+        # ✅ Save bot response to chat history
+        chat_history.append({"role": "bot", "text": refined_response})
+        save_chat_history(chat_history)
 
-    # ✅ Check if the user has confirmed the final artifact
-    if input_data.response.lower() in ["yes", "i like that", "approved"]:
-        # ✅ Store the final artifact
-        last_llm_message = next((msg["text"] for msg in reversed(chat_history) if msg["role"] == "bot"), None)
-        if last_llm_message:
-            artifact["data"][step["step"]] = last_llm_message  # ✅ Save final artifact
+        # ✅ If user confirms the problem, store it in `artifact.json`
+        if input_data.response.lower() in ["yes", "that works", "let's go with that"]:
+            artifact["data"][step["step"]] = refined_response
             save_artifact(artifact)
+            next_step = get_next_step(step["step"], workflow)
+            artifact["current_step"] = next_step if next_step else "complete"
+        else:
+            next_step = step_name  # Stay in this step until user confirms
 
-    next_step = get_next_step(step["step"], workflow)
-    if next_step:
-        artifact["current_step"] = next_step
     else:
-        artifact["current_step"] = "complete"  # ✅ Mark workflow as complete
+        # ✅ Normal behavior for later steps
+        refined_response = get_llm_response(input_data.response)
+        chat_history.append({"role": "bot", "text": refined_response})
+        save_chat_history(chat_history)
+
+        if input_data.response.lower() in ["yes", "approved"]:
+            last_llm_message = next((msg["text"] for msg in reversed(chat_history) if msg["role"] == "bot"), None)
+            if last_llm_message:
+                artifact["data"][step["step"]] = last_llm_message
+                save_artifact(artifact)
+
+        next_step = get_next_step(step["step"], workflow)
+        artifact["current_step"] = next_step if next_step else "complete"
 
     save_artifact(artifact)
 
     return {"message": "Step saved", "next_step": artifact["current_step"], "chat_history": chat_history}
+
 
 def get_next_step(current_step, workflow):
     """Determine the next step based on the current step."""
@@ -144,3 +156,40 @@ def get_llm_response(user_input):
         return response_data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "No response received")
     
     return "Error retrieving response from LLM"
+
+
+def refine_business_problem(user_input, chat_history):
+    """Refines the business problem iteratively instead of assuming the first answer is final."""
+    last_few_messages = chat_history[-5:]  # Look at recent messages for context
+
+    if any(msg["role"] == "bot" and "potential business problem" in msg["text"].lower() for msg in last_few_messages):
+        # ✅ If we've already suggested refinements, confirm
+        return f"Got it. So your business problem is: {user_input}? If this sounds right, say 'yes' to confirm or suggest another edit."
+
+    else:
+        # ✅ First attempt at refining the problem
+        options = [
+            f"One way to phrase your business problem is: 'Unanswered calls are leading to missed sales opportunities.'",
+            f"Another way to put it: 'Customers are experiencing frustration due to lack of phone support, reducing trust in the company.'",
+            f"A direct approach: 'We are losing an estimated $X per month due to missed calls.'"
+        ]
+        return "Here are some options to phrase your business problem:\n\n" + "\n".join(options) + "\n\nWhat do you think?"
+
+
+def get_llm_response(user_input):
+    """Call Google Gemini API to generate a refined response that continues the conversation."""
+    payload = {
+        "contents": [{"parts": [{"text": f"Refine this user input into a more detailed statement and provide a follow-up question to keep the conversation going: {user_input}"}]}]
+    }
+
+    headers = {"Content-Type": "application/json"}
+    
+    response = requests.post(f"{GEMINI_API_URL}?key={GEMINI_API_KEY}", json=payload, headers=headers)
+
+    if response.status_code == 200:
+        response_data = response.json()
+        return response_data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "No response received")
+    
+    return "I'm not sure how to refine that. Could you clarify?"
+
+
