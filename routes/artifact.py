@@ -40,7 +40,7 @@ def load_step_config(step_filename):
 def load_artifact():
     """Load artifact JSON file or create a new one if missing."""
     workflow_steps = load_workflow_index()
-    first_step = workflow_steps[0]  # ✅ Get the first step dynamically
+    first_step = f"workflow/{workflow_steps[0]}"  # ✅ Ensure first step includes `workflow/`
 
     if not os.path.exists(ARTIFACT_FILE):
         with open(ARTIFACT_FILE, "w") as f:
@@ -51,7 +51,7 @@ def load_artifact():
             artifact = json.load(f)
     except json.JSONDecodeError:
         artifact = {"current_step": first_step, "data": {}}
-        save_artifact(artifact)  # ✅ Reset artifact.json if it's empty or corrupted
+        save_artifact(artifact)  # ✅ Reset `artifact.json` if it's empty or corrupted
 
     return artifact
 
@@ -59,7 +59,7 @@ def load_artifact():
 async def start_new_artifact():
     """Initialize a new artifact workflow and set the first step dynamically."""
     workflow_steps = load_workflow_index()
-    first_step = workflow_steps[0] if workflow_steps else None
+    first_step = f"workflow/{workflow_steps[0]}" if workflow_steps else None  # ✅ Ensure `workflow/` is included
 
     if not first_step:
         raise HTTPException(status_code=500, detail="Workflow steps not found in workflowIndex.yaml.")
