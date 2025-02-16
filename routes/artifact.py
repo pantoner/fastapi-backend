@@ -87,16 +87,20 @@ async def get_current_step():
 
 @router.get("/artifact/step/{step_filename}")
 async def get_step(step_filename: str):
-    """Retrieve step details from YAML and check if step exists."""
+    """
+    Retrieve step details from YAML and check if step exists.
+    """
     workflow_steps = load_workflow_index()
+    decoded_step_filename = requests.utils.unquote(step_filename)
 
-    decoded_step_filename = requests.utils.unquote(step_filename)  # ✅ Decode filename for accuracy
-
-    # ✅ Ensure requested step is in workflow index
+    # Ensure requested step is in workflow index
     if decoded_step_filename not in workflow_steps:
-        raise HTTPException(status_code=404, detail=f"Step '{decoded_step_filename}' not found in workflow index.")
+        raise HTTPException(
+            status_code=404,
+            detail=f"Step '{decoded_step_filename}' not found in workflow index."
+        )
 
-    # ✅ Ensure step file exists
+    # Ensure step file exists
     try:
         step_config = load_step_config(decoded_step_filename)
     except HTTPException:
@@ -105,16 +109,20 @@ async def get_step(step_filename: str):
     artifact = load_artifact()
     chat_history = load_chat_history()
 
+    # Return two fields: 'filename' for the route, 'step_label' for the user-friendly name
     return {
-        "step": step_config["step"],
+        "filename": decoded_step_filename,                   # e.g. "workflow/01-define-problem.yaml"
+        "step_label": step_config["step"],                  # e.g. "Define Business Problem"
         "description": step_config.get("description", "No description available."),
         "input_type": step_config.get("input", ["text"]),
         "choices": step_config.get("options", []),
         "rules": step_config.get("rules", []),
         "next_step": step_config.get("next_step", "complete"),
+        # 'artifact_data' is stored under the YAML step_label. Keep if you want to keep that logic:
         "artifact_data": artifact["data"].get(step_config["step"], ""),
-        "chat_history": chat_history  # ✅ Return last 10 chat messages
+        "chat_history": chat_history
     }
+
 
 @router.post("/artifact/next_step")
 async def next_step():
