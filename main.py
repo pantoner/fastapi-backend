@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from routes.artifact import router as artifact_router
 from routes.contextual_chat import router as contextual_chat_router  # ✅ Import new route
+from routes.flan_t5_inference import run_flan_t5_model  # ✅ Import Flan-T5 processing
 from ai_helpers import correct_spelling, detect_user_mood, get_llm_response, load_chat_history, save_chat_history
 import requests
 import json
@@ -51,18 +52,6 @@ def load_users():
     with open(USERS_FILE, "r") as f:
         return json.load(f)
 
-# ✅ Function to Load Chat History
-def load_chat_history():
-    if not os.path.exists(CHAT_HISTORY_FILE):
-        return []
-    with open(CHAT_HISTORY_FILE, "r") as f:
-        history = json.load(f)
-    return history[-10:]  # ✅ Keep only the last 10 messages
-
-# ✅ Function to Save Chat History
-def save_chat_history(history):
-    with open(CHAT_HISTORY_FILE, "w") as f:
-        json.dump(history, f, indent=4)
 
 # ✅ API Route: Login Endpoint
 @app.post("/auth/login")
@@ -90,13 +79,17 @@ async def chat_with_gpt(chat_request: ChatRequest):
     corrected_message = correct_spelling(chat_request.message)
     mood = detect_user_mood(corrected_message)
 
+    # ✅ Process through Flan-T5 model
+    corrected_message = run_flan_t5_model(corrected_message)
+
     # ✅ Format chat history for LLM
     formatted_history = "\n".join(
         [f"You: {entry['user']}\nGPT: {entry['bot']}" for entry in chat_history]
     )
 
     # ✅ Add the latest user message
-    full_prompt = f"{formatted_history}\nYou: {chat_request.message}\nGPT:"
+    full_prompt = f"{formatted_history}\nYou: {corrected_message}\nGPT:"
+
 
     payload = {
         "contents": [{"parts": [{"text": full_prompt}]}]
