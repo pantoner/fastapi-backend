@@ -5,7 +5,7 @@ import tensorflow as tf
 import boto3  # ✅ Required for S3 download
 from fastapi import APIRouter
 from pydantic import BaseModel
-from transformers import T5Tokenizer, T5ForConditionalGeneration
+from transformers import TFT5ForConditionalGeneration, T5Tokenizer
 import datetime
 
 router = APIRouter()
@@ -38,7 +38,7 @@ tokenizer = T5Tokenizer.from_pretrained("google/flan-t5-base")
 download_model_from_s3()  # ✅ Ensure the model is downloaded before loading
 
 # ✅ Load fine-tuned weights
-model = T5ForConditionalGeneration.from_pretrained("google/flan-t5-base")
+model = TFT5ForConditionalGeneration.from_pretrained("google/flan-t5-base")
 model.load_weights(LOCAL_MODEL_PATH)
 
 class ChatRequest(BaseModel):
