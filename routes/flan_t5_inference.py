@@ -1,5 +1,6 @@
 import os
 import json
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  # ✅ Force TensorFlow to use CPU
 import tensorflow as tf
 import boto3  # ✅ Required for S3 download
 from fastapi import APIRouter
