@@ -11,7 +11,7 @@ import os
 router = APIRouter()
 
 # ✅ Load Gemini API URL (was missing before)
-GEMINI_API_URL = os.getenv("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent")
+GEMINI_API_URL = os.getenv("GEMINI_API_URL")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 if not GEMINI_API_URL or not GEMINI_API_KEY:
