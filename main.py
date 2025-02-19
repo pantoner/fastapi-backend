@@ -111,7 +111,7 @@ async def chat_with_gpt(chat_request: ChatRequest):
 
     return {"response": gpt_response, "history": chat_history}
 
-✅ Include artifact and contextual chat routers
+# ✅ Include artifact and contextual chat routers
 app.include_router(artifact_router)
 app.include_router(contextual_chat_router)  # ✅ Register contextual chat endpoint
 #app.include_router(chat_router)  # ✅ Register chat API
