@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from routes.artifact import router as artifact_router
 from routes.contextual_chat import router as contextual_chat_router  # ✅ Import new route
 from routes.flan_t5_inference import run_flan_t5_model  # ✅ Import Flan-T5 processing
-from routes.chat import router as chat_router  # ✅ Import chat router
+# from routes.chat import router as chat_router  # ✅ Import chat router
 from ai_helpers import correct_spelling, detect_user_mood, get_llm_response, load_chat_history, save_chat_history
 import requests
 import json
@@ -73,48 +73,48 @@ async def get_chat_history():
     return load_chat_history()
 
 # ✅ API Route: Chat with Google Gemini API
-# @app.post("/chat")
-# async def chat_with_gpt(chat_request: ChatRequest):
-#     """Send user input to Google Gemini API along with chat history for context."""
-#     chat_history = load_chat_history()  # ✅ Load past chats
-#     corrected_message = correct_spelling(chat_request.message)
-#     mood = detect_user_mood(corrected_message)
+@app.post("/chat")
+async def chat_with_gpt(chat_request: ChatRequest):
+    """Send user input to Google Gemini API along with chat history for context."""
+    chat_history = load_chat_history()  # ✅ Load past chats
+    corrected_message = correct_spelling(chat_request.message)
+    mood = detect_user_mood(corrected_message)
 
-#     # ✅ Process through Flan-T5 model
-#     corrected_message = run_flan_t5_model(corrected_message)
+    # ✅ Process through Flan-T5 model
+    corrected_message = run_flan_t5_model(corrected_message)
 
-#     # ✅ Format chat history for LLM
-#     formatted_history = "\n".join(
-#         [f"You: {entry['user']}\nGPT: {entry['bot']}" for entry in chat_history]
-#     )
+    # ✅ Format chat history for LLM
+    formatted_history = "\n".join(
+        [f"You: {entry['user']}\nGPT: {entry['bot']}" for entry in chat_history]
+    )
 
-#     # ✅ Add the latest user message
-#     full_prompt = f"{formatted_history}\nYou: {corrected_message}\nGPT:"
+    # ✅ Add the latest user message
+    full_prompt = f"{formatted_history}\nYou: {corrected_message}\nGPT:"
 
 
-#     payload = {
-#         "contents": [{"parts": [{"text": full_prompt}]}]
-#     }
+    payload = {
+        "contents": [{"parts": [{"text": full_prompt}]}]
+    }
 
-#     headers = {"Content-Type": "application/json"}
-#     response = requests.post(f"{GEMINI_API_URL}?key={GEMINI_API_KEY}", json=payload, headers=headers)
+    headers = {"Content-Type": "application/json"}
+    response = requests.post(f"{GEMINI_API_URL}?key={GEMINI_API_KEY}", json=payload, headers=headers)
 
-#     if response.status_code != 200:
-#         raise HTTPException(status_code=500, detail="Error communicating with Google Gemini API")
+    if response.status_code != 200:
+        raise HTTPException(status_code=500, detail="Error communicating with Google Gemini API")
 
-#     response_data = response.json()
-#     gpt_response = response_data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "No response received")
+    response_data = response.json()
+    gpt_response = response_data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "No response received")
 
-#     # ✅ Save chat history
-#     chat_history.append({"user": chat_request.message, "bot": gpt_response})
-#     save_chat_history(chat_history)
+    # ✅ Save chat history
+    chat_history.append({"user": chat_request.message, "bot": gpt_response})
+    save_chat_history(chat_history)
 
-#     return {"response": gpt_response, "history": chat_history}
+    return {"response": gpt_response, "history": chat_history}
 
 # ✅ Include artifact and contextual chat routers
 app.include_router(artifact_router)
 app.include_router(contextual_chat_router)  # ✅ Register contextual chat endpoint
-app.include_router(chat_router)  # ✅ Register chat API
+# app.include_router(chat_router)  # ✅ Register chat API
 
 # ✅ Start the FastAPI server when running the script directly
 if __name__ == "__main__":
