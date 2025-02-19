@@ -10,12 +10,12 @@ import os
 
 router = APIRouter()
 
-# ✅ Load Gemini API URL (was missing before)
-GEMINI_API_URL = os.getenv("GEMINI_API_URL")
+# ✅ Load Gemini API URL (Ensure it is correctly set)
+GEMINI_API_URL = os.getenv("GEMINI_API_URL", "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
-if not GEMINI_API_URL or not GEMINI_API_KEY:
-    raise RuntimeError("❌ ERROR: GEMINI_API_URL or GEMINI_API_KEY is missing!")
+if not GEMINI_API_KEY:
+    raise RuntimeError("❌ ERROR: GEMINI_API_KEY is missing!")
 
 class ChatRequest(BaseModel):
     message: str
@@ -47,18 +47,26 @@ async def chat_with_gpt(chat_request: ChatRequest):
     # ✅ Construct prompt for Gemini API
     sent_to_gemini = f"{formatted_history}\nYou: {flan_t5_output}\nGPT:"
 
-    # ✅ Send request to Gemini API (Reverted to requests.post)
+    # ✅ Send request to Gemini API (Use Authorization header)
     payload = {"contents": [{"parts": [{"text": sent_to_gemini}]}]}
-    headers = {"Content-Type": "application/json"}
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {GEMINI_API_KEY}"  # ✅ Use correct authentication
+    }
     
-    response = requests.post(f"{GEMINI_API_URL}?key={GEMINI_API_KEY}", json=payload, headers=headers)
+    response = requests.post(GEMINI_API_URL, json=payload, headers=headers)
 
     if response.status_code != 200:
         print(f"❌ Gemini API Error: {response.status_code} - {response.text}")  # 🔍 Debugging line
         raise HTTPException(status_code=500, detail="Error communicating with Google Gemini API")
 
     response_data = response.json()
-    final_gemini_output = response_data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "No response received")
+
+    # ✅ Extract response text correctly
+    try:
+        final_gemini_output = response_data["candidates"][0]["content"]["parts"][0]["text"]
+    except (KeyError, IndexError):
+        final_gemini_output = "No response received"
 
     # ✅ Save chat history
     chat_history.append({"user": original_input, "bot": final_gemini_output})
