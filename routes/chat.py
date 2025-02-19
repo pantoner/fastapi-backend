@@ -67,7 +67,7 @@ async def chat_with_gpt(chat_request: ChatRequest):
     full_prompt = f"{formatted_history}\nYou: {corrected_message}\nGPT:"
 
     # ✅ Send request to Gemini API (RESTORED working code logic)
-        payload = {
+    payload = {
         "contents": [{"parts": [{"text": full_prompt}]}]
     }
     
