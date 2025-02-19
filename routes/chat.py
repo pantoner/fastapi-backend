@@ -10,14 +10,6 @@ import os
 
 router = APIRouter()
 
-# ✅ Enable CORS for frontend communication (restrict to frontend domain)
-router.add_middleware(
-    CORSMiddleware,
-    allow_origins=["https://fastapi-frontend.onrender.com"],  # ✅ Allow frontend requests ONLY
-    allow_credentials=True,
-    allow_methods=["*"],  # ✅ Allow all HTTP methods (GET, POST, etc.)
-    allow_headers=["*"],  # ✅ Allow all headers
-)
 
 # ✅ Load Gemini API URL (Ensure it is correctly set)
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
