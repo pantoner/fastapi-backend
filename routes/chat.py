@@ -10,15 +10,33 @@ import os
 
 router = APIRouter()
 
+# ✅ Enable CORS for frontend communication (restrict to frontend domain)
+router.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://fastapi-frontend.onrender.com"],  # ✅ Allow frontend requests ONLY
+    allow_credentials=True,
+    allow_methods=["*"],  # ✅ Allow all HTTP methods (GET, POST, etc.)
+    allow_headers=["*"],  # ✅ Allow all headers
+)
+
 # ✅ Load Gemini API URL (Ensure it is correctly set)
-GEMINI_API_URL = os.getenv("GEMINI_API_URL", "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 if not GEMINI_API_KEY:
-    raise RuntimeError("❌ ERROR: GEMINI_API_KEY is missing!")
+    print("⚠️ Warning: GEMINI_API_KEY environment variable is missing!")
+else:
+    GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent"
+
+CHAT_HISTORY_FILE = "chat_history.json"
 
 class ChatRequest(BaseModel):
     message: str
+
+# ✅ API Route: Retrieve Chat History
+@router.get("/chat-history")
+async def get_chat_history():
+    """Returns the stored chat history."""
+    return load_chat_history()
 
 @router.post("/chat")
 async def chat_with_gpt(chat_request: ChatRequest):
@@ -45,45 +63,33 @@ async def chat_with_gpt(chat_request: ChatRequest):
     )
 
     # ✅ Construct prompt for Gemini API (RESTORED to working code)
-    sent_to_gemini = f"{formatted_history}\nYou: {corrected_message}\nGPT:"
+    #sent_to_gemini = f"{formatted_history}\nYou: {corrected_message}\nGPT:"
+    full_prompt = f"{formatted_history}\nYou: {corrected_message}\nGPT:"
 
     # ✅ Send request to Gemini API (RESTORED working code logic)
-    payload = {"contents": [{"parts": [{"text": sent_to_gemini}]}]}
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {GEMINI_API_KEY}"  # ✅ Use correct authentication
+        payload = {
+        "contents": [{"parts": [{"text": full_prompt}]}]
     }
+    
+    headers = {"Content-Type": "application/json"}
 
-    response = requests.post(GEMINI_API_URL, json=payload, headers=headers)
-
-    # ✅ Print response for debugging
-    print(f"🔍 RAW RESPONSE STATUS: {response.status_code}")
-    print(f"🔍 RAW RESPONSE TEXT: {response.text}")
+    response = requests.post(f"{GEMINI_API_URL}?key={GEMINI_API_KEY}", json=payload, headers=headers)
 
     if response.status_code != 200:
-        raise HTTPException(status_code=500, detail=f"Gemini API Error: {response.status_code} - {response.text}")
+        raise HTTPException(status_code=500, detail="Error communicating with Google Gemini API")
 
     response_data = response.json()
+    gpt_response = response_data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "No response received")
 
-    # ✅ Reverted to working response extraction
-    try:
-        final_gemini_output = response_data["candidates"][0]["content"]["parts"][0]["text"]
-    except (KeyError, IndexError):
-        final_gemini_output = "No response received"
-
-    # ✅ Save chat history (Preserved from working code)
-    chat_history.append({"user": original_input, "bot": final_gemini_output})
+    # ✅ Save chat history
+    chat_history.append({"user": chat_request.message, "bot": gpt_response})
     save_chat_history(chat_history)
 
     # ✅ Create structured log entry (New feature added **without breaking** working functionality)
-    log_entry = create_log_entry(original_input, corrected_message, corrected_message, sent_to_gemini, final_gemini_output)
+    log_entry = create_log_entry(original_input, corrected_message, full_prompt, gpt_response)
 
     # ✅ Save log to S3 (New feature added **without breaking** working functionality)
     s3_key = save_to_s3(hash_filename, log_entry)
 
-    return {
-        "response": final_gemini_output,
-        "log_filename": f"{hash_filename}.json",
-        "s3_path": s3_key,
-        "history": chat_history
+    return {"response": gpt_response, "history": chat_history}
     }
