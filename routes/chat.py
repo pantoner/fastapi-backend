@@ -92,4 +92,4 @@ async def chat_with_gpt(chat_request: ChatRequest):
     s3_key = save_to_s3(hash_filename, log_entry)
 
     return {"response": gpt_response, "history": chat_history}
-    }
+    
