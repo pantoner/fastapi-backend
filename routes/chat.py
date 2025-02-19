@@ -32,50 +32,53 @@ async def chat_with_gpt(chat_request: ChatRequest):
     timestamp = datetime.datetime.utcnow().isoformat()
     hash_filename = generate_hash(original_input, timestamp)
 
-    # ✅ Apply AI preprocessing
-    corrected_input = correct_spelling(original_input)
-    mood = detect_user_mood(corrected_input)
+    # ✅ Apply AI preprocessing (RESTORED to working code structure)
+    corrected_message = correct_spelling(original_input)
+    mood = detect_user_mood(corrected_message)
 
-    # ✅ Process through Flan-T5 model
-    flan_t5_output = run_flan_t5_model(corrected_input)
+    # ✅ Run through Flan-T5 model (RESTORED to working code)
+    corrected_message = run_flan_t5_model(corrected_message)
 
-    # ✅ Format chat history for LLM
+    # ✅ Format chat history for LLM (Matches working code)
     formatted_history = "\n".join(
         [f"You: {entry['user']}\nGPT: {entry['bot']}" for entry in chat_history]
     )
 
-    # ✅ Construct prompt for Gemini API
-    sent_to_gemini = f"{formatted_history}\nYou: {flan_t5_output}\nGPT:"
+    # ✅ Construct prompt for Gemini API (RESTORED to working code)
+    sent_to_gemini = f"{formatted_history}\nYou: {corrected_message}\nGPT:"
 
-    # ✅ Send request to Gemini API (Use Authorization header)
+    # ✅ Send request to Gemini API (RESTORED working code logic)
     payload = {"contents": [{"parts": [{"text": sent_to_gemini}]}]}
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {GEMINI_API_KEY}"  # ✅ Use correct authentication
     }
-    
+
     response = requests.post(GEMINI_API_URL, json=payload, headers=headers)
 
+    # ✅ Print response for debugging
+    print(f"🔍 RAW RESPONSE STATUS: {response.status_code}")
+    print(f"🔍 RAW RESPONSE TEXT: {response.text}")
+
     if response.status_code != 200:
-        print(f"❌ Gemini API Error: {response.status_code} - {response.text}")  # 🔍 Debugging line
-        raise HTTPException(status_code=500, detail="Error communicating with Google Gemini API")
+        raise HTTPException(status_code=500, detail=f"Gemini API Error: {response.status_code} - {response.text}")
 
     response_data = response.json()
 
-    # ✅ Extract response text correctly
+    # ✅ Reverted to working response extraction
     try:
         final_gemini_output = response_data["candidates"][0]["content"]["parts"][0]["text"]
     except (KeyError, IndexError):
         final_gemini_output = "No response received"
 
-    # ✅ Save chat history
+    # ✅ Save chat history (Preserved from working code)
     chat_history.append({"user": original_input, "bot": final_gemini_output})
     save_chat_history(chat_history)
 
-    # ✅ Create structured log entry
-    log_entry = create_log_entry(original_input, corrected_input, flan_t5_output, sent_to_gemini, final_gemini_output)
+    # ✅ Create structured log entry (New feature added **without breaking** working functionality)
+    log_entry = create_log_entry(original_input, corrected_message, corrected_message, sent_to_gemini, final_gemini_output)
 
-    # ✅ Save log to S3
+    # ✅ Save log to S3 (New feature added **without breaking** working functionality)
     s3_key = save_to_s3(hash_filename, log_entry)
 
     return {
