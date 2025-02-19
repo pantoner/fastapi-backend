@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 import datetime
-import httpx
+import requests  # ✅ Revert to requests.post()
 from ai_helpers import correct_spelling, detect_user_mood, load_chat_history, save_chat_history
 from routes.flan_t5_inference import run_flan_t5_model  # ✅ Import Flan-T5 processing
 from s3_utils import generate_hash, save_to_s3
@@ -9,6 +9,13 @@ from log_utils import create_log_entry
 import os
 
 router = APIRouter()
+
+# ✅ Load Gemini API URL (was missing before)
+GEMINI_API_URL = os.getenv("GEMINI_API_URL")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+
+if not GEMINI_API_URL or not GEMINI_API_KEY:
+    raise RuntimeError("❌ ERROR: GEMINI_API_URL or GEMINI_API_KEY is missing!")
 
 class ChatRequest(BaseModel):
     message: str
@@ -40,14 +47,14 @@ async def chat_with_gpt(chat_request: ChatRequest):
     # ✅ Construct prompt for Gemini API
     sent_to_gemini = f"{formatted_history}\nYou: {flan_t5_output}\nGPT:"
 
-    # ✅ Send request to Gemini API using async HTTP client
+    # ✅ Send request to Gemini API (Reverted to requests.post)
     payload = {"contents": [{"parts": [{"text": sent_to_gemini}]}]}
     headers = {"Content-Type": "application/json"}
     
-    async with httpx.AsyncClient() as client:
-        response = await client.post(f"{os.getenv('GEMINI_API_URL')}?key={os.getenv('GEMINI_API_KEY')}", json=payload, headers=headers)
+    response = requests.post(f"{GEMINI_API_URL}?key={GEMINI_API_KEY}", json=payload, headers=headers)
 
     if response.status_code != 200:
+        print(f"❌ Gemini API Error: {response.status_code} - {response.text}")  # 🔍 Debugging line
         raise HTTPException(status_code=500, detail="Error communicating with Google Gemini API")
 
     response_data = response.json()
