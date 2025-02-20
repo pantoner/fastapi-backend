@@ -136,9 +136,7 @@ full_prompt = (
     
     "Your response should be **concise, actionable, and supportive**, helping the user feel guided and motivated "
     "to progress in their running journey."
-)
-
-
+                                           )
     # -------------------------------------------------------------------------------------------------------------#
     payload = {
         "contents": [{"parts": [{"text": full_prompt}]}]
