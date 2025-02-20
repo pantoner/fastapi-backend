@@ -4,14 +4,12 @@ from pydantic import BaseModel
 from routes.artifact import router as artifact_router
 from routes.contextual_chat import router as contextual_chat_router  # ✅ Import new route
 from routes.flan_t5_inference import run_flan_t5_model  # ✅ Import Flan-T5 processing
-from routes.chat import router as chat_router  # ✅ Import chat router
 from ai_helpers import correct_spelling, detect_user_mood, get_llm_response, load_chat_history, save_chat_history
 from log_utils import create_log_entry  # ✅ Import logging utilities
 from s3_utils import generate_hash, save_to_s3  # ✅ Import S3 utilities
 import requests
 import json
 import os
-import datetime
 from dotenv import load_dotenv
 
 app = FastAPI()
@@ -56,6 +54,19 @@ def load_users():
     with open(USERS_FILE, "r") as f:
         return json.load(f)
 
+
+# ✅ API Route: Login Endpoint
+@app.post("/auth/login")
+async def login(request: LoginRequest):
+    users = load_users()
+
+    # ✅ Check if the email and password match
+    for user in users:
+        if user["email"] == request.email and user["password"] == request.password:
+            return {"access_token": "mock-jwt-token", "token_type": "bearer"}
+
+    raise HTTPException(status_code=401, detail="Invalid email or password")
+
 # ✅ API Route: Retrieve Chat History
 @app.get("/chat-history")
 async def get_chat_history():
@@ -65,8 +76,7 @@ async def get_chat_history():
 # ✅ API Route: Chat with Google Gemini API
 @app.post("/chat")
 async def chat_with_gpt(chat_request: ChatRequest):
-    """Send user input to Google Gemini API, log conversation, and save to S3."""
-
+    """Send user input to Google Gemini API along with chat history for context."""
     chat_history = load_chat_history()  # ✅ Load past chats
     corrected_message = correct_spelling(chat_request.message)
     mood = detect_user_mood(corrected_message)
@@ -82,6 +92,7 @@ async def chat_with_gpt(chat_request: ChatRequest):
     # ✅ Add the latest user message
     full_prompt = f"{formatted_history}\nYou: {corrected_message}\nGPT:"
 
+
     payload = {
         "contents": [{"parts": [{"text": full_prompt}]}]
     }
@@ -90,11 +101,7 @@ async def chat_with_gpt(chat_request: ChatRequest):
     response = requests.post(f"{GEMINI_API_URL}?key={GEMINI_API_KEY}", json=payload, headers=headers)
 
     if response.status_code != 200:
-        return {
-            "response": "❌ Error communicating with Google Gemini API",
-            "history": chat_history,
-            "error": response.text
-        }
+        raise HTTPException(status_code=500, detail="Error communicating with Google Gemini API")
 
     response_data = response.json()
     gpt_response = response_data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "No response received")
@@ -106,24 +113,15 @@ async def chat_with_gpt(chat_request: ChatRequest):
     # ✅ Create structured log entry (Logging Feature)
     log_entry = create_log_entry(chat_request.message, corrected_message, corrected_message, full_prompt, gpt_response)
 
-    # ✅ Save log to S3 and return any errors
-    s3_error = None
-    try:
-        save_to_s3(generate_hash(chat_request.message, datetime.datetime.utcnow().isoformat()), log_entry)
-    except Exception as e:
-        s3_error = f"❌ S3 Logging Error: {str(e)}"
-        print(s3_error)  # Log error
+    # ✅ Save log to S3 (New Feature)
+    save_to_s3(generate_hash(chat_request.message, datetime.datetime.utcnow().isoformat()), log_entry)
 
-    # ✅ Return API response, including any S3 errors
-    return {
-        "response": gpt_response,
-        "history": chat_history,
-        "s3_error": s3_error  # ✅ This will show any S3 logging issues
-    }
+    return {"response": gpt_response, "history": chat_history}
 
 # ✅ Include artifact and contextual chat routers
 app.include_router(artifact_router)
 app.include_router(contextual_chat_router)  # ✅ Register contextual chat endpoint
+
 
 # ✅ Start the FastAPI server when running the script directly
 if __name__ == "__main__":
