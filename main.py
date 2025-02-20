@@ -121,7 +121,17 @@ async def chat_with_gpt(chat_request: ChatRequest):
     f"**USER PROFILE:**\n{profile_text}\n\n"
     
     "**COACHING DISCUSSION:**\n"
-    "Goal / Next Step: Hello, John, let's discuss your progress since last time we spoke.\n\n"
+    "Begin your response with the following phrase, verbatim:\n"
+    "\"Hello, John, let's discuss your progress since last time we spoke.\"\n\n"
+
+        "After the greeting, provide:\n"
+    "- **Clear next step** tailored to the user’s current stage.\n"
+    "- **Relevant training advice** grounded in sound running principles.\n"
+    "- **Motivational and mindset support** to encourage consistency.\n"
+    "- **Adjustments or considerations** based on user-specific challenges (e.g., time constraints, injuries, training plateaus).\n\n"
+    
+    "Do not reference or mention any repeated messages. Keep the tone polite, constructive, and focused on practical coaching advice.\n\n"
+
     
     f"**PREVIOUS CONVERSATION (Context):**\n{formatted_history}\n\n"
     
