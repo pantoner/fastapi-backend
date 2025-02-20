@@ -4,8 +4,10 @@ from pydantic import BaseModel
 from routes.artifact import router as artifact_router
 from routes.contextual_chat import router as contextual_chat_router  # ✅ Import new route
 from routes.flan_t5_inference import run_flan_t5_model  # ✅ Import Flan-T5 processing
-# from routes.chat import router as chat_router  # ✅ Import chat router
+from routes.chat import router as chat_router  # ✅ Import chat router
 from ai_helpers import correct_spelling, detect_user_mood, get_llm_response, load_chat_history, save_chat_history
+from log_utils import create_log_entry  # ✅ Import logging utilities
+from s3_utils import generate_hash, save_to_s3  # ✅ Import S3 utilities
 import requests
 import json
 import os
@@ -109,12 +111,18 @@ async def chat_with_gpt(chat_request: ChatRequest):
     chat_history.append({"user": chat_request.message, "bot": gpt_response})
     save_chat_history(chat_history)
 
+    # ✅ Create structured log entry (Logging Feature)
+    log_entry = create_log_entry(chat_request.message, corrected_message, full_prompt, gpt_response)
+
+    # ✅ Save log to S3 (New Feature)
+    save_to_s3(generate_hash(chat_request.message, datetime.datetime.utcnow().isoformat()), log_entry)
+
     return {"response": gpt_response, "history": chat_history}
 
 # ✅ Include artifact and contextual chat routers
 app.include_router(artifact_router)
 app.include_router(contextual_chat_router)  # ✅ Register contextual chat endpoint
-# app.include_router(chat_router)  # ✅ Register chat API
+
 
 # ✅ Start the FastAPI server when running the script directly
 if __name__ == "__main__":
