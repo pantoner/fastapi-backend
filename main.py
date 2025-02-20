@@ -120,33 +120,22 @@ async def chat_with_gpt(chat_request: ChatRequest):
     
     f"**USER PROFILE:**\n{profile_text}\n\n"
     
-    "**COACHING DISCUSSION:**\n"
-    "Begin your response with the following phrase, verbatim:\n"
+    "**COACHING DISCUSSION INSTRUCTIONS:**\n"
+    "1. Start your response with this exact greeting:\n"
     "\"Hello, John, let's discuss your progress since last time we spoke.\"\n\n"
+    "2. Keep your response concise—**no more than 2 sentences**.\n"
+    "3. After providing clear coaching advice in those 1–2 sentences, **end with a follow-up question** to keep the conversation going.\n"
+    "4. Do **not** mention repeated messages or any mistakes.\n"
+    "5. Maintain a polite, supportive, and constructive tone.\n\n"
 
-        "After the greeting, provide:\n"
-    "- **Clear next step** tailored to the user’s current stage.\n"
-    "- **Relevant training advice** grounded in sound running principles.\n"
-    "- **Motivational and mindset support** to encourage consistency.\n"
-    "- **Adjustments or considerations** based on user-specific challenges (e.g., time constraints, injuries, training plateaus).\n\n"
-    
-    "Do not reference or mention any repeated messages. Keep the tone polite, constructive, and focused on practical coaching advice.\n\n"
+    "**PREVIOUS CONVERSATION (Context):**\n"
+    f"{formatted_history}\n\n"
 
-    
-    f"**PREVIOUS CONVERSATION (Context):**\n{formatted_history}\n\n"
-    
     f"**CURRENT USER MESSAGE:**\n{corrected_message}\n\n"
-    
+
     "**COACH RESPONSE:**\n"
-    "Provide a structured, coaching-oriented response that includes:\n"
-    "- **Clear next steps** tailored to the user’s current stage.\n"
-    "- **Relevant training advice** grounded in sound running principles.\n"
-    "- **Motivational and mindset support** to encourage consistency.\n"
-    "- **Adjustments or considerations** based on user-specific challenges (e.g., time constraints, injuries, training plateaus).\n\n"
-    
-    "Your response should be **concise, actionable, and supportive**, helping the user feel guided and motivated "
-    "to progress in their running journey."
-                                           )
+    "Remember: Provide a short piece of advice (1–2 sentences) and ask a relevant question."
+                )
     # -------------------------------------------------------------------------------------------------------------#
     payload = {
         "contents": [{"parts": [{"text": full_prompt}]}]
