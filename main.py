@@ -6,7 +6,8 @@ from routes.contextual_chat import router as contextual_chat_router  # ✅ Impor
 from routes.flan_t5_inference import run_flan_t5_model  # ✅ Import Flan-T5 processing
 from ai_helpers import correct_spelling, detect_user_mood, get_llm_response, load_chat_history, save_chat_history
 from log_utils import create_log_entry  # ✅ Import logging utilities
-from s3_utils import generate_hash, save_to_s3  # ✅ Import S3 utilities
+# from s3_utils import generate_hash, save_to_s3  # ✅ Import S3 utilities
+from local_storage import generate_hash, save_to_local  # ✅ Import Local Storage utilities
 import requests
 import json
 import os
@@ -114,7 +115,7 @@ async def chat_with_gpt(chat_request: ChatRequest):
     log_entry = create_log_entry(chat_request.message, corrected_message, corrected_message, full_prompt, gpt_response)
 
     # ✅ Save log to S3 (New Feature)
-    save_to_s3(generate_hash(chat_request.message, datetime.datetime.utcnow().isoformat()), log_entry)
+    save_to_local((generate_hash(chat_request.message, datetime.datetime.utcnow().isoformat()), log_entry))
 
     return {"response": gpt_response, "history": chat_history}
 
