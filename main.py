@@ -112,7 +112,7 @@ async def chat_with_gpt(chat_request: ChatRequest):
     save_chat_history(chat_history)
 
     # ✅ Create structured log entry (Logging Feature)
-    log_entry = create_log_entry(gpt_response)
+    log_entry = create_log_entry(mood, corrected_input,chat_history, full_prompt, gpt_response)
 
     # # ✅ Save log to S3 (New Feature)
     # save_to_local((generate_hash(chat_request.message, datetime.datetime.utcnow().isoformat()), log_entry))
