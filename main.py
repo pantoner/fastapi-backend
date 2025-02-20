@@ -111,7 +111,7 @@ async def chat_with_gpt(chat_request: ChatRequest):
        # ✅ Construct full chat prompt with profile at the top
     # full_prompt = f"User Profile:\n{profile_text}\n\nChat History:\n{formatted_history}\nYou: {corrected_message}\nGPT:"
 
-full_prompt = (
+    full_prompt = (
     f"**ROLE & OBJECTIVE:**\n"
     "You are a **running coach**, dedicated to providing structured guidance, personalized feedback, "
     "and actionable next steps to help the user progress in their training. Your approach should be **goal-oriented, "
