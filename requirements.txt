@@ -31,3 +31,8 @@ numpy==1.24.3
 sentence-transformers==2.2.2
 huggingface_hub==0.24.0 # Ensures cached_download is available
 
+openai==1.25.0
+
+
+
+
