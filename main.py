@@ -6,13 +6,11 @@ from routes.contextual_chat import router as contextual_chat_router  # ✅ Impor
 from routes.flan_t5_inference import run_flan_t5_model  # ✅ Import Flan-T5 processing
 from ai_helpers import correct_spelling, detect_user_mood, get_llm_response, load_chat_history, save_chat_history
 from faiss_helper import search_faiss
-# from log_utils import create_log_entry  # ✅ Import logging utilities
-# from s3_utils import generate_hash, save_to_s3  # ✅ Import S3 utilities
-# from local_storage import generate_hash, save_to_local  # ✅ Import Local Storage utilities
-import requests
+import openai  # ✅ Import OpenAI
 import json
 import os
 from dotenv import load_dotenv
+import requests
 
 app = FastAPI()
 
@@ -25,17 +23,19 @@ app.add_middleware(
     allow_headers=["*"],  # ✅ Allow all headers
 )
 
-# ✅ Load .env file ONLY in local development
-if not os.getenv("RENDER_EXTERNAL_HOSTNAME"):  # This variable exists only on Render
+# ✅ Load environment variables
+if not os.getenv("RENDER_EXTERNAL_HOSTNAME"):  # ✅ Only load .env in local development
     load_dotenv()
 
-# ✅ Load GEMINI API Key from Environment Variable
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+# ✅ Load OpenAI API Key from Environment Variable
+OPENAI_API_KEY = os.getenv(OPENAI_API_KEY)
+# OPENAI_API_KEY = "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"
 
-if not GEMINI_API_KEY:
-    print("⚠️ Warning: GEMINI_API_KEY environment variable is missing!")
+
+if not OPENAI_API_KEY:
+    print("⚠️ Warning: OPENAI_API_KEY environment variable is missing!")
 else:
-    GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent"
+    openai.api_key = OPENAI_API_KEY
 
 # ✅ Paths to JSON files
 USERS_FILE = "users.json"
@@ -65,17 +65,13 @@ def load_user_profile():
     with open(USER_PROFILE_FILE, "r") as f:
         return json.load(f)
 
-
 # ✅ API Route: Login Endpoint
 @app.post("/auth/login")
 async def login(request: LoginRequest):
     users = load_users()
-
-    # ✅ Check if the email and password match
     for user in users:
         if user["email"] == request.email and user["password"] == request.password:
             return {"access_token": "mock-jwt-token", "token_type": "bearer"}
-
     raise HTTPException(status_code=401, detail="Invalid email or password")
 
 # ✅ API Route: Retrieve Chat History
@@ -84,87 +80,106 @@ async def get_chat_history():
     """Returns the stored chat history."""
     return load_chat_history()
 
-# ✅ API Route: Chat with Google Gemini API
+# ✅ Query OpenAI GPT-4-turbo
+import openai
+import json
+
+# ✅ Load OpenAI API Key
+OPENAI_API_KEY = "your-openai-api-key"
+openai.api_key = OPENAI_API_KEY
+
+def query_openai_model(prompt):
+    """Send the formatted prompt to OpenAI GPT-4-turbo and return the response."""
+    try:
+        headers = {"Authorization": f"Bearer {OPENAI_API_KEY}", "Content-Type": "application/json"}
+        payload = {
+            "model": "gpt-4-turbo",
+            "messages": [
+                {"role": "system", "content": "You are a short, collaborative running coach. "
+                                              "Your responses must be under 50 words and always end with a follow-up question."},
+                {"role": "user", "content": prompt}
+            ],
+            "max_tokens": 50
+        }
+
+        print("📨 Sending request to OpenAI:", json.dumps(payload, indent=2))  # ✅ Debugging request
+
+        response = requests.post("https://api.openai.com/v1/chat/completions", json=payload, headers=headers)
+
+        print(f"🔍 OpenAI API Response Code: {response.status_code}")  # ✅ Debugging response status
+        print(f"🔍 OpenAI API Response: {response.text}")  # ✅ Debugging response content
+
+        if response.status_code == 200:
+            result = response.json()
+            return result["choices"][0]["message"]["content"]
+        else:
+            print(f"❌ OpenAI API Error: {response.status_code} - {response.text}")
+            return "Error: Unable to get response."
+
+    except Exception as e:
+        print(f"❌ Exception in OpenAI API call: {str(e)}")
+        return "Error: Unable to get response."
+
+
+# ✅ API Route: Chat with OpenAI GPT-4
 @app.post("/chat")
 async def chat_with_gpt(chat_request: ChatRequest):
-
     # ✅ Load user profile
     user_profile = load_user_profile()
     profile_text = json.dumps(user_profile, indent=2)
 
-    """Send user input to Google Gemini API along with chat history for context."""
-    chat_history = load_chat_history()  # ✅ Load past chats
+    # ✅ Load chat history
+    chat_history = load_chat_history()
     corrected_message = correct_spelling(chat_request.message)
     mood = detect_user_mood(corrected_message)
-
-    # ✅ Process through Flan-T5 model
-    corrected_message = run_flan_t5_model(corrected_message)
 
     # ✅ Format chat history for LLM
     formatted_history = "\n".join(
         [f"You: {entry['user']}\nGPT: {entry['bot']}" for entry in chat_history]
     )
 
-   # ✅ Retrieve relevant knowledge from FAISS
+    # ✅ Retrieve relevant knowledge from FAISS
     retrieved_contexts = search_faiss(corrected_message, top_k=3)
     retrieved_text = "\n".join(retrieved_contexts) if retrieved_contexts else "No relevant data found."
 
-
-    # # ✅ Add the latest user message
-    # full_prompt = f"{formatted_history}\nYou: {corrected_message}\nGPT:"
-
-    # --------------------------------------------------- ---------------------------------------------------#
-       # ✅ Construct full chat prompt with profile at the top
-    # full_prompt = f"User Profile:\n{profile_text}\n\nChat History:\n{formatted_history}\nYou: {corrected_message}\nGPT:"
-
+    # ✅ Construct full chat prompt
     full_prompt = (
-        f"**ROLE & OBJECTIVE:**\n"
-        "You are a **running coach**, dedicated to providing structured guidance, personalized feedback, "
-        "and actionable next steps to help the user progress in their training.\n\n"
+        "**ROLE & OBJECTIVE:**\n"
+        "You are a **collaborative running coach** who provides **brief, engaging responses**. "
+        "You **MUST keep answers under 50 words** and **ALWAYS end with a follow-up question**. "
+        "DO NOT give lists or detailed breakdowns. Instead, ask the user about their preferences.\n\n"
 
         f"**USER PROFILE:**\n{profile_text}\n\n"
 
         "**PREVIOUS CONVERSATION (Context):**\n"
-        f"{formatted_history}\n\n"
+        f"{formatted_history}\n\n"  # ✅ NOW INCLUDED!
 
         "**RETRIEVED KNOWLEDGE:**\n"
         f"{retrieved_text}\n\n"
 
-        f"**CURRENT USER MESSAGE (Corrected):**\n{corrected_message}\n\n"
+        f"**CURRENT USER MESSAGE:**\n{corrected_message}\n\n"
 
         "**COACH RESPONSE:**\n"
-        "Use the retrieved knowledge and conversation history to provide a structured and accurate response."
+        "You MUST keep your response **under 50 words** and **always ask a follow-up question to ask if the runner feels good with the recomendation**. "
+        # "Example:\n"
+        # "User: 'What should I do for my speed workout today?'\n"
+        # "Coach: 'Do you prefer hill sprints or short intervals today?'"
     )
-    # -------------------------------------------------------------------------------------------------------------#
-    payload = {
-        "contents": [{"parts": [{"text": full_prompt}]}]
-    }
 
-    headers = {"Content-Type": "application/json"}
-    response = requests.post(f"{GEMINI_API_URL}?key={GEMINI_API_KEY}", json=payload, headers=headers)
+    # ✅ Call OpenAI GPT-4 API
+    gpt_response = query_openai_model(full_prompt)
 
-    if response.status_code != 200:
-        raise HTTPException(status_code=500, detail="Error communicating with Google Gemini API")
-
-    response_data = response.json()
-    gpt_response = response_data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "No response received")
 
     # ✅ Save chat history
     chat_history.append({"user": chat_request.message, "bot": gpt_response})
     save_chat_history(chat_history)
 
-    # # ✅ Create structured log entry (Logging Feature)
-    # log_entry = create_log_entry(mood, corrected_input,chat_history, full_prompt, gpt_response)
-
-    # # ✅ Save log to S3 (New Feature)
-    # save_to_local((generate_hash(chat_request.message, datetime.datetime.utcnow().isoformat()), log_entry))
-
     return {"response": gpt_response, "history": chat_history}
+
 
 # ✅ Include artifact and contextual chat routers
 app.include_router(artifact_router)
 app.include_router(contextual_chat_router)  # ✅ Register contextual chat endpoint
-
 
 # ✅ Start the FastAPI server when running the script directly
 if __name__ == "__main__":
