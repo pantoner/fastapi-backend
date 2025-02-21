@@ -1,0 +1,1142 @@
+[
+  {
+    "id": 0,
+    "text": "Running a negative or even split improves race performance instantly. Going out too fast in the first half costs 2x time in the second half.",
+    "topic_path": "pacing > negative_splitting",
+    "chunk_type": "description"
+  },
+  {
+    "id": 1,
+    "text": "Slow down at the start to avoid burnout.",
+    "topic_path": "pacing > negative_splitting",
+    "chunk_type": "example"
+  },
+  {
+    "id": 2,
+    "text": "Every 1 minute too fast in the first half costs 2+ minutes in the second half.",
+    "topic_path": "pacing > negative_splitting",
+    "chunk_type": "example"
+  },
+  {
+    "id": 3,
+    "text": "Eating specific foods before a race improves recovery and performance.",
+    "topic_path": "nutrition > pre_race_diet",
+    "chunk_type": "description"
+  },
+  {
+    "id": 4,
+    "text": "Consume watermelon for better performance.",
+    "topic_path": "nutrition > pre_race_diet",
+    "chunk_type": "example"
+  },
+  {
+    "id": 5,
+    "text": "Eat spinach daily for reduced muscle soreness.",
+    "topic_path": "nutrition > pre_race_diet",
+    "chunk_type": "example"
+  },
+  {
+    "id": 6,
+    "text": "Reducing stomach bulk before a race improves speed.",
+    "topic_path": "nutrition > food_weight_reduction",
+    "chunk_type": "description"
+  },
+  {
+    "id": 7,
+    "text": "Avoid high-fiber foods race week.",
+    "topic_path": "nutrition > food_weight_reduction",
+    "chunk_type": "example"
+  },
+  {
+    "id": 8,
+    "text": "Use juice instead of solid foods race morning to reduce gut weight.",
+    "topic_path": "nutrition > food_weight_reduction",
+    "chunk_type": "example"
+  },
+  {
+    "id": 9,
+    "text": "Reducing food bulk prevents race-day bathroom stops.",
+    "topic_path": "nutrition > bathroom_breaks",
+    "chunk_type": "description"
+  },
+  {
+    "id": 10,
+    "text": "Eat easily digestible foods the night before the race.",
+    "topic_path": "nutrition > bathroom_breaks",
+    "chunk_type": "example"
+  },
+  {
+    "id": 11,
+    "text": "Avoid meat, starch, salt, and oil before race day.",
+    "topic_path": "nutrition > bathroom_breaks",
+    "chunk_type": "example"
+  },
+  {
+    "id": 12,
+    "text": "Stabilizing insulin levels before a race prevents early glycogen depletion.",
+    "topic_path": "energy_management > insulin_control",
+    "chunk_type": "description"
+  },
+  {
+    "id": 13,
+    "text": "Stop eating 2 hours before the race.",
+    "topic_path": "energy_management > insulin_control",
+    "chunk_type": "example"
+  },
+  {
+    "id": 14,
+    "text": "Don’t consume sugar within 20 minutes of race start.",
+    "topic_path": "energy_management > insulin_control",
+    "chunk_type": "example"
+  },
+  {
+    "id": 15,
+    "text": "Running a downhill race can improve race times significantly.",
+    "topic_path": "race_day_strategy > choosing_a_faster_course",
+    "chunk_type": "description"
+  },
+  {
+    "id": 16,
+    "text": "Boston Marathon qualifiers allow downhill courses.",
+    "topic_path": "race_day_strategy > choosing_a_faster_course",
+    "chunk_type": "example"
+  },
+  {
+    "id": 17,
+    "text": "Picking a faster course is as effective as intense training.",
+    "topic_path": "race_day_strategy > choosing_a_faster_course",
+    "chunk_type": "example"
+  },
+  {
+    "id": 18,
+    "text": "The ideal muscular tension depends on race distance.",
+    "topic_path": "muscular_tension > tuning_muscle_tension",
+    "chunk_type": "description"
+  },
+  {
+    "id": 19,
+    "text": "Sprinters need high muscular tension—use plyometrics, box jumps.",
+    "topic_path": "muscular_tension > tuning_muscle_tension",
+    "chunk_type": "example"
+  },
+  {
+    "id": 20,
+    "text": "Marathoners need low muscular tension—train at race pace, avoid speedwork close to race day.",
+    "topic_path": "muscular_tension > tuning_muscle_tension",
+    "chunk_type": "example"
+  },
+  {
+    "id": 21,
+    "text": "Nitric oxide improves blood flow and enhances performance.",
+    "topic_path": "oxygen_utilization > boosting_nitric_oxide",
+    "chunk_type": "description"
+  },
+  {
+    "id": 22,
+    "text": "Eat dark leafy greens like spinach and watercress.",
+    "topic_path": "oxygen_utilization > boosting_nitric_oxide",
+    "chunk_type": "example"
+  },
+  {
+    "id": 23,
+    "text": "Avoid oil and caffeine on race day as they inhibit nitric oxide production.",
+    "topic_path": "oxygen_utilization > boosting_nitric_oxide",
+    "chunk_type": "example"
+  },
+  {
+    "id": 24,
+    "text": "Strides improve running efficiency and speed within weeks.",
+    "topic_path": "warm_up_and_speed_training > adding_strides",
+    "chunk_type": "description"
+  },
+  {
+    "id": 25,
+    "text": "Add 200 strides per week to training.",
+    "topic_path": "warm_up_and_speed_training > adding_strides",
+    "chunk_type": "example"
+  },
+  {
+    "id": 26,
+    "text": "Use strides in race warm-ups for shorter distances.",
+    "topic_path": "warm_up_and_speed_training > adding_strides",
+    "chunk_type": "example"
+  },
+  {
+    "id": 27,
+    "text": "6-week structured training for a 23:00 5K goal using the triphasic method.",
+    "topic_path": "training > 5K_training_plan",
+    "chunk_type": "description"
+  },
+  {
+    "id": 28,
+    "text": "Progress mileage from 20 to 40 miles per week in structured increments.",
+    "topic_path": "training > 5K_training_plan",
+    "chunk_type": "example"
+  },
+  {
+    "id": 29,
+    "text": "Follow eccentric, isometric, and concentric training phases to optimize running strength.",
+    "topic_path": "training > 5K_training_plan",
+    "chunk_type": "example"
+  },
+  {
+    "id": 30,
+    "text": "Discussion on running performance as athletes age, including strategies for setting goals, biomechanics, and effective training methodologies.",
+    "topic_path": "podcast > old_men_running_podcast",
+    "chunk_type": "description"
+  },
+  {
+    "id": 31,
+    "text": "Running PRs later in life is achievable for athletes in their 40s, 50s, and 60s.",
+    "topic_path": "podcast > old_men_running_podcast",
+    "chunk_type": "example"
+  },
+  {
+    "id": 32,
+    "text": "The difference between A and B goals determines long-term motivation and commitment.",
+    "topic_path": "podcast > old_men_running_podcast",
+    "chunk_type": "example"
+  },
+  {
+    "id": 33,
+    "text": "Biomechanics emphasize running as a vertical jump rather than a forward push.",
+    "topic_path": "podcast > old_men_running_podcast",
+    "chunk_type": "example"
+  },
+  {
+    "id": 34,
+    "text": "80/20 Running structures training to maximize efficiency and prevent burnout.",
+    "topic_path": "podcast > old_men_running_podcast",
+    "chunk_type": "example"
+  },
+  {
+    "id": 35,
+    "text": "Pacing determines if a runner is optimizing their marathon effort.",
+    "topic_path": "podcast > old_men_running_podcast",
+    "chunk_type": "example"
+  },
+  {
+    "id": 36,
+    "text": "Andrew Snow’s coaching philosophy emphasizing training, health, and mindset as key factors for success.",
+    "topic_path": "podcast > coaching_philosophy",
+    "chunk_type": "description"
+  },
+  {
+    "id": 37,
+    "text": "Training is only one-third of performance improvement; health and mindset play a crucial role.",
+    "topic_path": "podcast > coaching_philosophy",
+    "chunk_type": "example"
+  },
+  {
+    "id": 38,
+    "text": "Mindset or emotion set determines consistency and long-term success.",
+    "topic_path": "podcast > coaching_philosophy",
+    "chunk_type": "example"
+  },
+  {
+    "id": 39,
+    "text": "A strong reason for running eliminates the need for external motivation.",
+    "topic_path": "podcast > coaching_philosophy",
+    "chunk_type": "example"
+  },
+  {
+    "id": 40,
+    "text": "A 47-year-old runner reduced their marathon time by 55 minutes in nine weeks through structured training.",
+    "topic_path": "podcast > coaching_philosophy",
+    "chunk_type": "example"
+  },
+  {
+    "id": 41,
+    "text": "Volume and consistency produce greater long-term results than intense intervals.",
+    "topic_path": "podcast > coaching_philosophy",
+    "chunk_type": "example"
+  },
+  {
+    "id": 42,
+    "text": "How aging runners can still improve and surpass their younger selves.",
+    "topic_path": "podcast > age_performance",
+    "chunk_type": "description"
+  },
+  {
+    "id": 43,
+    "text": "Well-trained 60-year-old runners can outperform their 30-year-old selves with improved training, diet, and recovery.",
+    "topic_path": "podcast > age_performance",
+    "chunk_type": "example"
+  },
+  {
+    "id": 44,
+    "text": "A 47-year-old runner improved their lifetime PR by 20 minutes despite training seriously for decades.",
+    "topic_path": "podcast > age_performance",
+    "chunk_type": "example"
+  },
+  {
+    "id": 45,
+    "text": "Ultra-running world rankings frequently feature athletes in their 40s and 50s.",
+    "topic_path": "podcast > age_performance",
+    "chunk_type": "example"
+  },
+  {
+    "id": 46,
+    "text": "Longevity in running depends on lifestyle choices rather than age.",
+    "topic_path": "podcast > age_performance",
+    "chunk_type": "example"
+  },
+  {
+    "id": 47,
+    "text": "Accumulated fitness plays a greater role in performance than natural decline.",
+    "topic_path": "podcast > age_performance",
+    "chunk_type": "example"
+  },
+  {
+    "id": 48,
+    "text": "The importance of pacing strategy for marathons and ultras.",
+    "topic_path": "podcast > race_pacing",
+    "chunk_type": "description"
+  },
+  {
+    "id": 49,
+    "text": "Most runners start too fast and experience a positive split in their races.",
+    "topic_path": "podcast > race_pacing",
+    "chunk_type": "example"
+  },
+  {
+    "id": 50,
+    "text": "Elite runners maintain even pacing strategies that optimize energy output.",
+    "topic_path": "podcast > race_pacing",
+    "chunk_type": "example"
+  },
+  {
+    "id": 51,
+    "text": "Negative splitting is the most effective pacing strategy for long-distance races.",
+    "topic_path": "podcast > race_pacing",
+    "chunk_type": "example"
+  },
+  {
+    "id": 52,
+    "text": "Ultramarathon success relies on staying consistent while competitors fade.",
+    "topic_path": "podcast > race_pacing",
+    "chunk_type": "example"
+  },
+  {
+    "id": 53,
+    "text": "A well-executed pacing strategy determines long-distance race outcomes.",
+    "topic_path": "podcast > race_pacing",
+    "chunk_type": "example"
+  },
+  {
+    "id": 54,
+    "text": "Understanding the physics of running and how to improve form.",
+    "topic_path": "podcast > running_mechanics",
+    "chunk_type": "description"
+  },
+  {
+    "id": 55,
+    "text": "Running is a vertical force rather than a horizontal push.",
+    "topic_path": "podcast > running_mechanics",
+    "chunk_type": "example"
+  },
+  {
+    "id": 56,
+    "text": "Proper biomechanics impact injury prevention and efficiency.",
+    "topic_path": "podcast > running_mechanics",
+    "chunk_type": "example"
+  },
+  {
+    "id": 57,
+    "text": "Elite runners lean forward to use gravity for speed generation.",
+    "topic_path": "podcast > running_mechanics",
+    "chunk_type": "example"
+  },
+  {
+    "id": 58,
+    "text": "The myth of horizontal power misleads runners into inefficient mechanics.",
+    "topic_path": "podcast > running_mechanics",
+    "chunk_type": "example"
+  },
+  {
+    "id": 59,
+    "text": "Training adjustments reinforce proper running mechanics.",
+    "topic_path": "podcast > running_mechanics",
+    "chunk_type": "example"
+  },
+  {
+    "id": 60,
+    "text": "The psychological approach to long-term running success.",
+    "topic_path": "podcast > training_mindset",
+    "chunk_type": "description"
+  },
+  {
+    "id": 61,
+    "text": "Setting an A goal without fallback options enhances commitment.",
+    "topic_path": "podcast > training_mindset",
+    "chunk_type": "example"
+  },
+  {
+    "id": 62,
+    "text": "Focusing on the process rather than race results leads to greater fulfillment.",
+    "topic_path": "podcast > training_mindset",
+    "chunk_type": "example"
+  },
+  {
+    "id": 63,
+    "text": "Selective focus determines motivation and performance outcomes.",
+    "topic_path": "podcast > training_mindset",
+    "chunk_type": "example"
+  },
+  {
+    "id": 64,
+    "text": "A decisive commitment to improvement eliminates excuses and self-doubt.",
+    "topic_path": "podcast > training_mindset",
+    "chunk_type": "example"
+  },
+  {
+    "id": 65,
+    "text": "Elite athletes operate with single-minded determination rather than contingency plans.",
+    "topic_path": "podcast > training_mindset",
+    "chunk_type": "example"
+  },
+  {
+    "id": 66,
+    "text": "Andrew Snow’s approach to content creation and coaching outreach.",
+    "topic_path": "podcast > youtube_channel",
+    "chunk_type": "description"
+  },
+  {
+    "id": 67,
+    "text": "Starting a YouTube channel was a long-term investment in knowledge sharing.",
+    "topic_path": "podcast > youtube_channel",
+    "chunk_type": "example"
+  },
+  {
+    "id": 68,
+    "text": "Content marketing builds a dedicated coaching audience over time.",
+    "topic_path": "podcast > youtube_channel",
+    "chunk_type": "example"
+  },
+  {
+    "id": 69,
+    "text": "Documenting knowledge creates a lasting impact beyond individual coaching.",
+    "topic_path": "podcast > youtube_channel",
+    "chunk_type": "example"
+  },
+  {
+    "id": 70,
+    "text": "YouTube provides access to expert knowledge on demand for runners worldwide.",
+    "topic_path": "podcast > youtube_channel",
+    "chunk_type": "example"
+  },
+  {
+    "id": 71,
+    "text": "Timeless training principles offer more value than short-lived trends.",
+    "topic_path": "podcast > youtube_channel",
+    "chunk_type": "example"
+  },
+  {
+    "id": 72,
+    "text": "The impact of coaching and mentorship in running.",
+    "topic_path": "podcast > coaching_experience",
+    "chunk_type": "description"
+  },
+  {
+    "id": 73,
+    "text": "Coaching extends beyond workouts to mindset, strategy, and adaptation.",
+    "topic_path": "podcast > coaching_experience",
+    "chunk_type": "example"
+  },
+  {
+    "id": 74,
+    "text": "Trust and rapport between coach and athlete influence performance improvement.",
+    "topic_path": "podcast > coaching_experience",
+    "chunk_type": "example"
+  },
+  {
+    "id": 75,
+    "text": "A coach does not need to be faster than their athletes to be effective.",
+    "topic_path": "podcast > coaching_experience",
+    "chunk_type": "example"
+  },
+  {
+    "id": 76,
+    "text": "Structured training plans require adaptability based on athlete feedback.",
+    "topic_path": "podcast > coaching_experience",
+    "chunk_type": "example"
+  },
+  {
+    "id": 77,
+    "text": "Great coaches help runners look beyond race times to long-term growth.",
+    "topic_path": "podcast > coaching_experience",
+    "chunk_type": "example"
+  },
+  {
+    "id": 78,
+    "text": "Strategies to improve running speed beyond common online tips.",
+    "topic_path": "training > running_faster",
+    "chunk_type": "description"
+  },
+  {
+    "id": 79,
+    "text": "Mindset shifts are crucial to bridging the gap between belief and performance.",
+    "topic_path": "training > running_faster",
+    "chunk_type": "example"
+  },
+  {
+    "id": 80,
+    "text": "Elite runners train with different philosophies, not just more miles or harder workouts.",
+    "topic_path": "training > running_faster",
+    "chunk_type": "example"
+  },
+  {
+    "id": 81,
+    "text": "Base training is fundamental for long-term progress and should not be rushed.",
+    "topic_path": "training > running_faster",
+    "chunk_type": "example"
+  },
+  {
+    "id": 82,
+    "text": "How elite runners train differently from amateur runners.",
+    "topic_path": "training > elite_runner_training",
+    "chunk_type": "description"
+  },
+  {
+    "id": 83,
+    "text": "Elite runners emphasize training structure over maximizing VO2 max or lactate threshold.",
+    "topic_path": "training > elite_runner_training",
+    "chunk_type": "example"
+  },
+  {
+    "id": 84,
+    "text": "Their training is highly specific and individualized rather than following generic plans.",
+    "topic_path": "training > elite_runner_training",
+    "chunk_type": "example"
+  },
+  {
+    "id": 85,
+    "text": "A structured taper leading into race day is essential for peak performance.",
+    "topic_path": "training > elite_runner_training",
+    "chunk_type": "example"
+  },
+  {
+    "id": 86,
+    "text": "The role of mindset in running performance and success.",
+    "topic_path": "training > mindset_for_running",
+    "chunk_type": "description"
+  },
+  {
+    "id": 87,
+    "text": "Runners must cultivate certainty and belief before race day to perform at their best.",
+    "topic_path": "training > mindset_for_running",
+    "chunk_type": "example"
+  },
+  {
+    "id": 88,
+    "text": "Focusing on lifestyle habits, diet, and sleep is just as important as training itself.",
+    "topic_path": "training > mindset_for_running",
+    "chunk_type": "example"
+  },
+  {
+    "id": 89,
+    "text": "Training without a strong mindset leads to unfulfilled performance despite effort.",
+    "topic_path": "training > mindset_for_running",
+    "chunk_type": "example"
+  },
+  {
+    "id": 90,
+    "text": "How to set meaningful goals beyond just hitting a specific race time.",
+    "topic_path": "training > goal_setting_and_motivation",
+    "chunk_type": "description"
+  },
+  {
+    "id": 91,
+    "text": "Defining success beyond a finish time prevents post-race dissatisfaction.",
+    "topic_path": "training > goal_setting_and_motivation",
+    "chunk_type": "example"
+  },
+  {
+    "id": 92,
+    "text": "Elite runners use strong internal motivations, such as Kipchoge’s 'No Human is Limited' philosophy.",
+    "topic_path": "training > goal_setting_and_motivation",
+    "chunk_type": "example"
+  },
+  {
+    "id": 93,
+    "text": "The purpose of training is to arrive at race day with absolute certainty of success.",
+    "topic_path": "training > goal_setting_and_motivation",
+    "chunk_type": "example"
+  },
+  {
+    "id": 94,
+    "text": "Breaking down training into base, support, and specific phases.",
+    "topic_path": "training > structured_training_phases",
+    "chunk_type": "description"
+  },
+  {
+    "id": 95,
+    "text": "Base training should last at least 6 weeks and can extend indefinitely.",
+    "topic_path": "training > structured_training_phases",
+    "chunk_type": "example"
+  },
+  {
+    "id": 96,
+    "text": "Support training refines speed and endurance before specific race prep.",
+    "topic_path": "training > structured_training_phases",
+    "chunk_type": "example"
+  },
+  {
+    "id": 97,
+    "text": "Specific training should last exactly 6 weeks to optimize neuromuscular adaptation.",
+    "topic_path": "training > structured_training_phases",
+    "chunk_type": "example"
+  },
+  {
+    "id": 98,
+    "text": "How to apply the triphasic training model to running.",
+    "topic_path": "training > triphasic_model_for_runners",
+    "chunk_type": "description"
+  },
+  {
+    "id": 99,
+    "text": "Conditioning is the first step before entering structured training phases.",
+    "topic_path": "training > triphasic_model_for_runners",
+    "chunk_type": "example"
+  },
+  {
+    "id": 100,
+    "text": "Eccentric training builds strength, isometric training develops stability, and concentric training enhances power.",
+    "topic_path": "training > triphasic_model_for_runners",
+    "chunk_type": "example"
+  },
+  {
+    "id": 101,
+    "text": "Hill sprints are a safe and effective way to develop speed and neuromuscular efficiency.",
+    "topic_path": "training > triphasic_model_for_runners",
+    "chunk_type": "example"
+  },
+  {
+    "id": 102,
+    "text": "Key dietary principles to enhance running performance.",
+    "topic_path": "training > nutrition_for_runners",
+    "chunk_type": "description"
+  },
+  {
+    "id": 103,
+    "text": "Raw plant-based foods provide essential enzymes, water, and micronutrients for endurance athletes.",
+    "topic_path": "training > nutrition_for_runners",
+    "chunk_type": "example"
+  },
+  {
+    "id": 104,
+    "text": "Avoid spiking insulin immediately before a race to optimize glycogen utilization.",
+    "topic_path": "training > nutrition_for_runners",
+    "chunk_type": "example"
+  },
+  {
+    "id": 105,
+    "text": "Whole foods like fresh orange juice can offer similar performance benefits to commercial energy gels.",
+    "topic_path": "training > nutrition_for_runners",
+    "chunk_type": "example"
+  },
+  {
+    "id": 106,
+    "text": "How to approach tapering effectively without over-reducing volume.",
+    "topic_path": "training > tapering_for_races",
+    "chunk_type": "description"
+  },
+  {
+    "id": 107,
+    "text": "Elite runners taper for only 3-4 days, not 2-3 weeks like amateurs.",
+    "topic_path": "training > tapering_for_races",
+    "chunk_type": "example"
+  },
+  {
+    "id": 108,
+    "text": "Maintaining intensity while slightly reducing volume is the best approach.",
+    "topic_path": "training > tapering_for_races",
+    "chunk_type": "example"
+  },
+  {
+    "id": 109,
+    "text": "Over-tapering leads to a loss of race-specific sharpness and efficiency.",
+    "topic_path": "training > tapering_for_races",
+    "chunk_type": "example"
+  },
+  {
+    "id": 110,
+    "text": "Mindset and execution tips for peak race day performance.",
+    "topic_path": "training > race_day_strategy",
+    "chunk_type": "description"
+  },
+  {
+    "id": 111,
+    "text": "Arriving at the starting line with absolute certainty is key to executing a strong race.",
+    "topic_path": "training > race_day_strategy",
+    "chunk_type": "example"
+  },
+  {
+    "id": 112,
+    "text": "Pacing strategy should be planned in advance, avoiding the trap of positive splitting.",
+    "topic_path": "training > race_day_strategy",
+    "chunk_type": "example"
+  },
+  {
+    "id": 113,
+    "text": "Trusting the training process and not second-guessing your preparation is crucial.",
+    "topic_path": "training > race_day_strategy",
+    "chunk_type": "example"
+  },
+  {
+    "id": 114,
+    "text": "Base training alone can lead to lifetime bests in races from 5K to ultramarathons.",
+    "topic_path": "training > base_training_effectiveness",
+    "chunk_type": "description"
+  },
+  {
+    "id": 115,
+    "text": "Base training builds aerobic endurance and muscular integrity without burnout.",
+    "topic_path": "training > base_training_effectiveness",
+    "chunk_type": "example"
+  },
+  {
+    "id": 116,
+    "text": "Running easy at high volume strengthens slow-twitch fibers for long-term improvement.",
+    "topic_path": "training > base_training_effectiveness",
+    "chunk_type": "example"
+  },
+  {
+    "id": 117,
+    "text": "High-volume strides and hill sprints develop fast-twitch muscle efficiency.",
+    "topic_path": "training > base_training_effectiveness",
+    "chunk_type": "example"
+  },
+  {
+    "id": 118,
+    "text": "Elite runners prioritize base training before introducing specific workouts.",
+    "topic_path": "training > elite_runner_training",
+    "chunk_type": "example"
+  },
+  {
+    "id": 119,
+    "text": "Training consistency over years matters more than short-term intensity.",
+    "topic_path": "training > elite_runner_training",
+    "chunk_type": "example"
+  },
+  {
+    "id": 120,
+    "text": "Long-term aerobic development supports peak performance in race-specific phases.",
+    "topic_path": "training > elite_runner_training",
+    "chunk_type": "example"
+  },
+  {
+    "id": 121,
+    "text": "Believing in success before race day is key to achieving peak performance.",
+    "topic_path": "training > mindset_for_running",
+    "chunk_type": "example"
+  },
+  {
+    "id": 122,
+    "text": "Training discipline and lifestyle choices determine race outcomes.",
+    "topic_path": "training > mindset_for_running",
+    "chunk_type": "example"
+  },
+  {
+    "id": 123,
+    "text": "Elite athletes visualize success and execute training with precision.",
+    "topic_path": "training > mindset_for_running",
+    "chunk_type": "example"
+  },
+  {
+    "id": 124,
+    "text": "Success is not just about the finish time but about sustained progress.",
+    "topic_path": "training > goal_setting_and_motivation",
+    "chunk_type": "example"
+  },
+  {
+    "id": 125,
+    "text": "Defining a meaningful 'why' behind running goals sustains motivation.",
+    "topic_path": "training > goal_setting_and_motivation",
+    "chunk_type": "example"
+  },
+  {
+    "id": 126,
+    "text": "Viewing setbacks as learning experiences strengthens long-term commitment.",
+    "topic_path": "training > goal_setting_and_motivation",
+    "chunk_type": "example"
+  },
+  {
+    "id": 127,
+    "text": "Base training should last at least 6 weeks but can extend indefinitely.",
+    "topic_path": "training > structured_training_phases",
+    "chunk_type": "example"
+  },
+  {
+    "id": 128,
+    "text": "Support training transitions into race specificity while maintaining endurance.",
+    "topic_path": "training > structured_training_phases",
+    "chunk_type": "example"
+  },
+  {
+    "id": 129,
+    "text": "Specific training should last exactly 6 weeks for peak adaptation.",
+    "topic_path": "training > structured_training_phases",
+    "chunk_type": "example"
+  },
+  {
+    "id": 130,
+    "text": "Conditioning prepares the body before structured training begins.",
+    "topic_path": "training > triphasic_model_for_runners",
+    "chunk_type": "example"
+  },
+  {
+    "id": 131,
+    "text": "Base training builds aerobic efficiency and muscular resilience.",
+    "topic_path": "training > triphasic_model_for_runners",
+    "chunk_type": "example"
+  },
+  {
+    "id": 132,
+    "text": "Specific workouts enhance peak performance while minimizing injury risk.",
+    "topic_path": "training > triphasic_model_for_runners",
+    "chunk_type": "example"
+  },
+  {
+    "id": 133,
+    "text": "Whole, plant-based foods provide essential micronutrients and hydration.",
+    "topic_path": "training > nutrition_for_runners",
+    "chunk_type": "example"
+  },
+  {
+    "id": 134,
+    "text": "Avoid spiking insulin before a race to optimize glycogen usage.",
+    "topic_path": "training > nutrition_for_runners",
+    "chunk_type": "example"
+  },
+  {
+    "id": 135,
+    "text": "Hydration strategies and proper fueling prevent mid-race fatigue.",
+    "topic_path": "training > nutrition_for_runners",
+    "chunk_type": "example"
+  },
+  {
+    "id": 136,
+    "text": "Elite runners taper only slightly, reducing volume but maintaining intensity.",
+    "topic_path": "training > tapering_for_races",
+    "chunk_type": "example"
+  },
+  {
+    "id": 137,
+    "text": "Traditional long tapers can lead to detraining and reduced race sharpness.",
+    "topic_path": "training > tapering_for_races",
+    "chunk_type": "example"
+  },
+  {
+    "id": 138,
+    "text": "Gradually reducing training load 10-14 days before a race maintains peak fitness.",
+    "topic_path": "training > tapering_for_races",
+    "chunk_type": "example"
+  },
+  {
+    "id": 139,
+    "text": "Arrive at race day confident and fully prepared through structured training.",
+    "topic_path": "training > race_day_strategy",
+    "chunk_type": "example"
+  },
+  {
+    "id": 140,
+    "text": "Pacing strategy is key: negative splits improve race outcomes.",
+    "topic_path": "training > race_day_strategy",
+    "chunk_type": "example"
+  },
+  {
+    "id": 141,
+    "text": "Trusting the training process minimizes race-day anxiety and improves execution.",
+    "topic_path": "training > race_day_strategy",
+    "chunk_type": "example"
+  },
+  {
+    "id": 142,
+    "text": "Comparison of training distributions between average and elite runners.",
+    "topic_path": "training > introduction_to_training_graphs",
+    "chunk_type": "description"
+  },
+  {
+    "id": 143,
+    "text": "Average runners do a lot of medium-intensity running, while elites train at polarized extremes.",
+    "topic_path": "training > introduction_to_training_graphs",
+    "chunk_type": "example"
+  },
+  {
+    "id": 144,
+    "text": "Elite runners follow a U-shaped distribution: high volume of easy running, little moderate intensity, and specific high-intensity training.",
+    "topic_path": "training > introduction_to_training_graphs",
+    "chunk_type": "example"
+  },
+  {
+    "id": 145,
+    "text": "Visualizing training graphs helps understand the fundamental difference in training strategies.",
+    "topic_path": "training > introduction_to_training_graphs",
+    "chunk_type": "example"
+  },
+  {
+    "id": 146,
+    "text": "Elite runners balance high mileage with structured speed development.",
+    "topic_path": "training > volume_and_speed_in_elite_training",
+    "chunk_type": "description"
+  },
+  {
+    "id": 147,
+    "text": "Elite 5K runners train at 80-120+ miles per week, with a strong emphasis on easy running.",
+    "topic_path": "training > volume_and_speed_in_elite_training",
+    "chunk_type": "example"
+  },
+  {
+    "id": 148,
+    "text": "Speed is not neglected, with regular strides and structured workouts built into training blocks.",
+    "topic_path": "training > volume_and_speed_in_elite_training",
+    "chunk_type": "example"
+  },
+  {
+    "id": 149,
+    "text": "Long-term volume development is a critical factor in sustaining high-intensity workouts closer to race day.",
+    "topic_path": "training > volume_and_speed_in_elite_training",
+    "chunk_type": "example"
+  },
+  {
+    "id": 150,
+    "text": "Kenenisa Bekele’s high-volume training approach leading up to the Olympics.",
+    "topic_path": "training > case_study_bekele_training",
+    "chunk_type": "description"
+  },
+  {
+    "id": 151,
+    "text": "Bekele ran 140+ miles per week, with most of it at an easy pace, sometimes as slow as 10-minute miles.",
+    "topic_path": "training > case_study_bekele_training",
+    "chunk_type": "example"
+  },
+  {
+    "id": 152,
+    "text": "Every other day, he performed 30x100m strides at 4-minute mile pace, accumulating two miles of speed work per session.",
+    "topic_path": "training > case_study_bekele_training",
+    "chunk_type": "example"
+  },
+  {
+    "id": 153,
+    "text": "This approach built an unmatched aerobic base, allowing him to execute high-intensity workouts effectively closer to race day.",
+    "topic_path": "training > case_study_bekele_training",
+    "chunk_type": "example"
+  },
+  {
+    "id": 154,
+    "text": "Examples of extreme workouts performed by world-class marathoners.",
+    "topic_path": "training > monster_workouts_of_elite_runners",
+    "chunk_type": "description"
+  },
+  {
+    "id": 155,
+    "text": "Moses Mosop and Abel Karoui performed 25-mile runs at 10 seconds slower than marathon pace in training.",
+    "topic_path": "training > monster_workouts_of_elite_runners",
+    "chunk_type": "example"
+  },
+  {
+    "id": 156,
+    "text": "Some elite runners do 10K at goal pace twice in the morning, then repeat it twice in the evening, accumulating 24 miles at high intensity in a day.",
+    "topic_path": "training > monster_workouts_of_elite_runners",
+    "chunk_type": "example"
+  },
+  {
+    "id": 157,
+    "text": "These intense sessions are balanced by extended recovery periods, allowing the body to absorb the workload.",
+    "topic_path": "training > monster_workouts_of_elite_runners",
+    "chunk_type": "example"
+  },
+  {
+    "id": 158,
+    "text": "The role of base training in long-term endurance development.",
+    "topic_path": "training > building_a_strong_aerobic_base",
+    "chunk_type": "description"
+  },
+  {
+    "id": 159,
+    "text": "Building volume over time strengthens aerobic capacity and allows greater adaptation to intense workouts.",
+    "topic_path": "training > building_a_strong_aerobic_base",
+    "chunk_type": "example"
+  },
+  {
+    "id": 160,
+    "text": "Higher mileage increases mitochondrial density and enhances recovery ability.",
+    "topic_path": "training > building_a_strong_aerobic_base",
+    "chunk_type": "example"
+  },
+  {
+    "id": 161,
+    "text": "Base training allows runners to handle larger workloads without excessive fatigue or injury risk.",
+    "topic_path": "training > building_a_strong_aerobic_base",
+    "chunk_type": "example"
+  },
+  {
+    "id": 162,
+    "text": "Using the 80/20 rule to balance easy and hard training efforts effectively.",
+    "topic_path": "training > the_80_20_principle_in_training",
+    "chunk_type": "description"
+  },
+  {
+    "id": 163,
+    "text": "80% of training should be easy, while 20% should be high-intensity workouts.",
+    "topic_path": "training > the_80_20_principle_in_training",
+    "chunk_type": "example"
+  },
+  {
+    "id": 164,
+    "text": "Increasing mileage while keeping the easy/hard ratio consistent allows for greater adaptation.",
+    "topic_path": "training > the_80_20_principle_in_training",
+    "chunk_type": "example"
+  },
+  {
+    "id": 165,
+    "text": "Building a higher volume of training while maintaining 20% intensity enables progressive improvement.",
+    "topic_path": "training > the_80_20_principle_in_training",
+    "chunk_type": "example"
+  },
+  {
+    "id": 166,
+    "text": "How food choices impact athletic performance and overall well-being.",
+    "topic_path": "training > food_addiction_and_performance",
+    "chunk_type": "description"
+  },
+  {
+    "id": 167,
+    "text": "The more raw food you consume, the better your performance and energy levels.",
+    "topic_path": "training > food_addiction_and_performance",
+    "chunk_type": "example"
+  },
+  {
+    "id": 168,
+    "text": "Food addiction is one of the most difficult addictions to overcome.",
+    "topic_path": "training > food_addiction_and_performance",
+    "chunk_type": "example"
+  },
+  {
+    "id": 169,
+    "text": "Transitioning to a fruitarian diet helped improve running performance.",
+    "topic_path": "training > food_addiction_and_performance",
+    "chunk_type": "example"
+  },
+  {
+    "id": 170,
+    "text": "The journey to adopting a plant-based diet and its effects on performance.",
+    "topic_path": "training > transitioning_to_plant_based",
+    "chunk_type": "description"
+  },
+  {
+    "id": 171,
+    "text": "Discovering plant-based nutrition through books and research led to a sudden dietary shift.",
+    "topic_path": "training > transitioning_to_plant_based",
+    "chunk_type": "example"
+  },
+  {
+    "id": 172,
+    "text": "T Colin Campbell's work was a major influence in adopting a vegan lifestyle.",
+    "topic_path": "training > transitioning_to_plant_based",
+    "chunk_type": "example"
+  },
+  {
+    "id": 173,
+    "text": "Documentaries like Earthlings and Cowspiracy reinforced the ethical and environmental reasons for staying plant-based.",
+    "topic_path": "training > transitioning_to_plant_based",
+    "chunk_type": "example"
+  },
+  {
+    "id": 174,
+    "text": "How diet choices directly impact running endurance and speed.",
+    "topic_path": "training > impact_of_diet_on_running",
+    "chunk_type": "description"
+  },
+  {
+    "id": 175,
+    "text": "Switching to a plant-based diet improved recovery and race performance.",
+    "topic_path": "training > impact_of_diet_on_running",
+    "chunk_type": "example"
+  },
+  {
+    "id": 176,
+    "text": "A fruitarian approach provided faster digestion and lighter energy levels for long runs.",
+    "topic_path": "training > impact_of_diet_on_running",
+    "chunk_type": "example"
+  },
+  {
+    "id": 177,
+    "text": "Racing on watermelon juice alone led to multiple personal bests.",
+    "topic_path": "training > impact_of_diet_on_running",
+    "chunk_type": "example"
+  },
+  {
+    "id": 178,
+    "text": "Why removing oil from the diet benefits endurance athletes.",
+    "topic_path": "training > eliminating_oil_for_performance",
+    "chunk_type": "description"
+  },
+  {
+    "id": 179,
+    "text": "Oil damages the endothelial lining and impairs blood flow.",
+    "topic_path": "training > eliminating_oil_for_performance",
+    "chunk_type": "example"
+  },
+  {
+    "id": 180,
+    "text": "Nitric oxide function is hindered by oil and caffeine, reducing oxygen delivery to muscles.",
+    "topic_path": "training > eliminating_oil_for_performance",
+    "chunk_type": "example"
+  },
+  {
+    "id": 181,
+    "text": "Cold-pressed oils turn rancid quickly and do not provide health benefits comparable to whole foods.",
+    "topic_path": "training > eliminating_oil_for_performance",
+    "chunk_type": "example"
+  },
+  {
+    "id": 182,
+    "text": "The role of mental conditioning and lifestyle alignment in achieving peak performance.",
+    "topic_path": "training > mindset_and_holistic_living",
+    "chunk_type": "description"
+  },
+  {
+    "id": 183,
+    "text": "Training and racing success stems from mindset and belief, not just physical ability.",
+    "topic_path": "training > mindset_and_holistic_living",
+    "chunk_type": "example"
+  },
+  {
+    "id": 184,
+    "text": "Holistic living involves aligning health, spirituality, and personal growth for long-term fulfillment.",
+    "topic_path": "training > mindset_and_holistic_living",
+    "chunk_type": "example"
+  },
+  {
+    "id": 185,
+    "text": "Taking control of thoughts and values leads to better training consistency and life satisfaction.",
+    "topic_path": "training > mindset_and_holistic_living",
+    "chunk_type": "example"
+  },
+  {
+    "id": 186,
+    "text": "Lessons from the life and untimely passing of record-breaking marathoner Kelvin Kiptum.",
+    "topic_path": "training > kelvin_kiptums_legacy",
+    "chunk_type": "description"
+  },
+  {
+    "id": 187,
+    "text": "Kiptum’s passing reminds us that now is the time to pursue our goals.",
+    "topic_path": "training > kelvin_kiptums_legacy",
+    "chunk_type": "example"
+  },
+  {
+    "id": 188,
+    "text": "The journey and impact of an athlete matter more than the records they achieve.",
+    "topic_path": "training > kelvin_kiptums_legacy",
+    "chunk_type": "example"
+  },
+  {
+    "id": 189,
+    "text": "His career showed that breaking limits is about belief and perseverance.",
+    "topic_path": "training > kelvin_kiptums_legacy",
+    "chunk_type": "example"
+  }
+]

@@ -1,0 +1,56 @@
+{
+  "categories": {
+    "training": {
+      "topics": {
+        "food_addiction_and_performance": {
+          "description": "How food choices impact athletic performance and overall well-being.",
+          "examples": [
+            "The more raw food you consume, the better your performance and energy levels.",
+            "Food addiction is one of the most difficult addictions to overcome.",
+            "Transitioning to a fruitarian diet helped improve running performance."
+          ]
+        },
+        "transitioning_to_plant_based": {
+          "description": "The journey to adopting a plant-based diet and its effects on performance.",
+          "examples": [
+            "Discovering plant-based nutrition through books and research led to a sudden dietary shift.",
+            "T Colin Campbell's work was a major influence in adopting a vegan lifestyle.",
+            "Documentaries like Earthlings and Cowspiracy reinforced the ethical and environmental reasons for staying plant-based."
+          ]
+        },
+        "impact_of_diet_on_running": {
+          "description": "How diet choices directly impact running endurance and speed.",
+          "examples": [
+            "Switching to a plant-based diet improved recovery and race performance.",
+            "A fruitarian approach provided faster digestion and lighter energy levels for long runs.",
+            "Racing on watermelon juice alone led to multiple personal bests."
+          ]
+        },
+        "eliminating_oil_for_performance": {
+          "description": "Why removing oil from the diet benefits endurance athletes.",
+          "examples": [
+            "Oil damages the endothelial lining and impairs blood flow.",
+            "Nitric oxide function is hindered by oil and caffeine, reducing oxygen delivery to muscles.",
+            "Cold-pressed oils turn rancid quickly and do not provide health benefits comparable to whole foods."
+          ]
+        },
+        "mindset_and_holistic_living": {
+          "description": "The role of mental conditioning and lifestyle alignment in achieving peak performance.",
+          "examples": [
+            "Training and racing success stems from mindset and belief, not just physical ability.",
+            "Holistic living involves aligning health, spirituality, and personal growth for long-term fulfillment.",
+            "Taking control of thoughts and values leads to better training consistency and life satisfaction."
+          ]
+        },
+        "kelvin_kiptums_legacy": {
+          "description": "Lessons from the life and untimely passing of record-breaking marathoner Kelvin Kiptum.",
+          "examples": [
+            "Kiptum’s passing reminds us that now is the time to pursue our goals.",
+            "The journey and impact of an athlete matter more than the records they achieve.",
+            "His career showed that breaking limits is about belief and perseverance."
+          ]
+        }
+      }
+    }
+  }
+}

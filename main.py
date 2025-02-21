@@ -5,6 +5,7 @@ from routes.artifact import router as artifact_router
 from routes.contextual_chat import router as contextual_chat_router  # ✅ Import new route
 from routes.flan_t5_inference import run_flan_t5_model  # ✅ Import Flan-T5 processing
 from ai_helpers import correct_spelling, detect_user_mood, get_llm_response, load_chat_history, save_chat_history
+from faiss_helper import search_faiss
 # from log_utils import create_log_entry  # ✅ Import logging utilities
 # from s3_utils import generate_hash, save_to_s3  # ✅ Import S3 utilities
 # from local_storage import generate_hash, save_to_local  # ✅ Import Local Storage utilities
@@ -104,6 +105,11 @@ async def chat_with_gpt(chat_request: ChatRequest):
         [f"You: {entry['user']}\nGPT: {entry['bot']}" for entry in chat_history]
     )
 
+   # ✅ Retrieve relevant knowledge from FAISS
+    retrieved_contexts = search_faiss(corrected_message, top_k=3)
+    retrieved_text = "\n".join(retrieved_contexts) if retrieved_contexts else "No relevant data found."
+
+
     # # ✅ Add the latest user message
     # full_prompt = f"{formatted_history}\nYou: {corrected_message}\nGPT:"
 
@@ -112,73 +118,23 @@ async def chat_with_gpt(chat_request: ChatRequest):
     # full_prompt = f"User Profile:\n{profile_text}\n\nChat History:\n{formatted_history}\nYou: {corrected_message}\nGPT:"
 
     full_prompt = (
-    f"**ROLE & OBJECTIVE:**\n"
-    "You are a **running coach**, dedicated to providing structured guidance, personalized feedback, "
-    "and actionable next steps to help the user progress in their training. Your approach should be **goal-oriented, "
-    "adaptive to their experience level, and supportive while emphasizing performance improvement, injury prevention, "
-    "and motivation**.\n\n"
-    
-    f"**USER PROFILE:**\n{profile_text}\n\n"
-    
-    "**COACHING DISCUSSION INSTRUCTIONS:**\n"
-    "1. Start your response with this exact greeting:\n"
-    "\"Hello, John, let's discuss your progress since last time we spoke.\"\n\n"
-    "2. Keep your response concise—**no more than 2 sentences**.\n"
-    "3. After providing clear coaching advice in those 1–2 sentences, **end with a follow-up question** to keep the conversation going.\n"
-    "4. Do **not** mention repeated messages or any mistakes.\n"
-    "5. Maintain a polite, supportive, and constructive tone.\n\n"
+        f"**ROLE & OBJECTIVE:**\n"
+        "You are a **running coach**, dedicated to providing structured guidance, personalized feedback, "
+        "and actionable next steps to help the user progress in their training.\n\n"
 
-    "**PREVIOUS CONVERSATION (Context):**\n"
-    f"{formatted_history}\n\n"
+        f"**USER PROFILE:**\n{profile_text}\n\n"
 
-    f"**CURRENT USER MESSAGE:**\n{corrected_message}\n\n"
+        "**PREVIOUS CONVERSATION (Context):**\n"
+        f"{formatted_history}\n\n"
 
-    "**COACH RESPONSE:**\n"
-    "Remember: Provide a short piece of advice (1–2 sentences) and ask a relevant question."
-    
-    "\n\n"
-    # --- Start of the NEWLY ADDED TEXT below ---
-    "ROLE & OBJECTIVE:\n"
-    "You are a multifaceted running coach who can discuss three distinct topics: \n"
-    "1) Mindset,\n"
-    "2) Running,\n"
-    "3) Nutrition.\n\n"
+        "**RETRIEVED KNOWLEDGE:**\n"
+        f"{retrieved_text}\n\n"
 
-    "**RULE**: In each response, focus ONLY on the topic that the user requests. "
-    "Do NOT mix different topics unless the user explicitly asks you to do so.\n\n"
+        f"**CURRENT USER MESSAGE (Corrected):**\n{corrected_message}\n\n"
 
-    "EXAMPLES:\n"
-    "- If the user says 'Let's talk about mindset', you give advice ONLY on mindset.\n"
-    "- If the user says 'What speed workouts should I do?', focus ONLY on running aspects.\n"
-    "- If the user says 'Any tips on protein intake?', focus ONLY on nutrition.\n\n"
-
-    "If the user tries to discuss multiple topics at once, politely ask them to clarify "
-    "which single topic they'd like to focus on. If they explicitly say they want to discuss "
-    "both or all three, you may address them in separate segments of your reply "
-    "(but keep them clearly separated).\n\n"
-
-    "COACHING STYLE:\n"
-    "- Give concise, specific advice, sticking to the user's chosen topic.\n"
-    "- Maintain a short, supportive, and actionable style.\n"
-    "- If the user hasn't specified a topic or is unclear, politely ask which topic "
-    "they'd like to discuss first.\n\n"
-
-    "USER PROFILE:\n"
-    "{{profile_text}}\n\n"
-
-    "PREVIOUS CONVERSATION (Context):\n"
-    "{{formatted_history}}\n\n"
-
-    "CURRENT USER MESSAGE:\n"
-    "{{corrected_message}}\n\n"
-
-    "COACH RESPONSE:\n"
-    "Focus on the SINGLE topic the user asked about (mindset, running, or nutrition). "
-    "If unclear, ask for clarification. Provide short, topic-specific insights, "
-    "then end with a relevant question to continue the conversation or confirm "
-    "if the user wants to switch topics."
-)
-
+        "**COACH RESPONSE:**\n"
+        "Use the retrieved knowledge and conversation history to provide a structured and accurate response."
+    )
     # -------------------------------------------------------------------------------------------------------------#
     payload = {
         "contents": [{"parts": [{"text": full_prompt}]}]
