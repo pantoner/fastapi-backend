@@ -2,7 +2,15 @@ import os
 import json
 import faiss
 import numpy as np
-from sentence_transformers import SentenceTransformer
+try:
+    from sentence_transformers import SentenceTransformer
+except ImportError as e:
+    raise RuntimeError("Error importing sentence-transformers. Try updating your requirements.") from e
+
+try:
+    from huggingface_hub import cached_download
+except ImportError:
+    print("⚠️ Warning: `cached_download` not found in `huggingface_hub`. Updating module may be required.")
 
 # ✅ FAISS and Embedding Model Setup
 FAISS_INDEX_FILE = "knowledge_index.faiss"
