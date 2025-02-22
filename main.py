@@ -33,9 +33,8 @@ OPENAI_API_KEY = "sk-proj-VOAPb2rNaPzziNF1sTnmLGQ9qmQhLmQBcXLwvkQh-0TQxbSKmVemmx
 
 
 if not OPENAI_API_KEY:
-    print("⚠️ Warning: OPENAI_API_KEY environment variable is missing!")
-else:
-    openai.api_key = OPENAI_API_KEY
+    raise RuntimeError("OpenAI API key is missing!")
+openai.api_key = OPENAI_API_KEY
 
 # ✅ Paths to JSON files
 USERS_FILE = "users.json"
@@ -85,7 +84,7 @@ import openai
 import json
 
 # ✅ Load OpenAI API Key
-OPENAI_API_KEY = "your-openai-api-key"
+
 openai.api_key = OPENAI_API_KEY
 
 def query_openai_model(prompt):

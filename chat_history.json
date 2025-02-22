@@ -1,11 +1,11 @@
 [
     {
         "user": "What should I do for my speed workout today?",
-        "bot": "It seems there was an error processing your request. I apologize for the inconvenience.  To best assist you, I need some information from you.  Could you please rephrase or resend your message?\n\nIn the meantime, let's review your current training and goals. You're aiming for a 3:20:00 marathon at the Boston Marathon, which is an ambitious but achievable goal considering your previous best of 3:25:00. However, your last marathon time was 3:45:00, which indicates we need to analyze what contributed to the slower performance.\n\nGiven your history of hamstring strains, it's crucial we build your training plan carefully to minimize the risk of re-injury.  We also need to consider your meat-free diet to ensure you're fueling your runs effectively.  Your spinach consumption is a good start, but we'll need to discuss a more comprehensive nutrition plan to support your training.\n\nTo help me understand your current training and guide you effectively, please tell me:\n\n* **What was your original request?**  Knowing what you were trying to ask will help me address your specific needs.\n* **What does your current training week look like?** Please detail your daily runs including distance, pace, and any cross-training activities.\n* **How have you been feeling during your runs lately?** This includes energy levels, any niggles or pains, and overall enjoyment.\n\nRemember, success is a journey, not just a destination. We'll work together to create a personalized plan that incorporates the principles of triphasic training, focusing on strength, speed, and endurance while prioritizing injury prevention and proper nutrition.  A decisive commitment to this plan will help you reach your Boston Marathon goal and, importantly, enjoy the process.\n"
+        "bot": "I'm sorry, I couldn't process your request."
     },
     {
         "user": "What should I do for my speed workout today?",
-        "bot": "I'm sorry, I couldn't process your request."
+        "bot": "Error: Unable to get response."
     },
     {
         "user": "What should I do for my speed workout today?",
