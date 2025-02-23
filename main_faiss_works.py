@@ -150,13 +150,19 @@ async def chat_with_gpt(chat_request: ChatRequest):
 
         f"**USER PROFILE:**\n{profile_text}\n\n"
 
-        "**EXAMPLES FROM TRAINING DATA:**\n"
+        "**PREVIOUS CONVERSATION (Context):**\n"
+        f"{formatted_history}\n\n"  # ✅ NOW INCLUDED!
+
+        "**RETRIEVED KNOWLEDGE:**\n"
         f"{retrieved_text}\n\n"
 
         f"**CURRENT USER MESSAGE:**\n{corrected_message}\n\n"
 
         "**COACH RESPONSE:**\n"
-        "You MUST keep your response **under 50 words** and **always ask a follow-up question to ask if the runner feels good with the recommendation**."
+        "You MUST keep your response **under 50 words** and **always ask a follow-up question to ask if the runner feels good with the recomendation**. "
+        # "Example:\n"
+        # "User: 'What should I do for my speed workout today?'\n"
+        # "Coach: 'Do you prefer hill sprints or short intervals today?'"
     )
 
     # ✅ Call OpenAI GPT-4 API

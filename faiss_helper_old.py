@@ -2,7 +2,6 @@ import os
 import json
 import faiss
 import numpy as np
-from collections import defaultdict
 try:
     from sentence_transformers import SentenceTransformer
 except ImportError as e:
@@ -36,23 +35,16 @@ embedding_model = SentenceTransformer(EMBEDDING_MODEL_NAME)
 faiss_index = load_faiss_index()
 metadata = load_metadata()
 
-
+# ✅ FAISS Search Function
 def search_faiss(query, top_k=3):
-    """Retrieve the most relevant example-based knowledge snippets from FAISS."""
+    """Retrieve the most relevant knowledge snippets from FAISS."""
     query_embedding = embedding_model.encode([query], convert_to_numpy=True).astype(np.float32)
     distances, indices = faiss_index.search(query_embedding, top_k)
 
-    grouped_examples = defaultdict(list)
+    results = []
     for dist, idx in zip(distances[0], indices[0]):
         if idx < 0 or idx >= len(metadata):
             continue
+        results.append(metadata[idx]["text"])  # Retrieve actual text
 
-        entry = metadata[idx]
-        if entry.get("chunk_type") == "example":
-            topic_path = entry.get("topic_path", "unknown_topic")  # Group by topic
-            grouped_examples[topic_path].append(entry["text"])
-
-    # ✅ Merge examples within the same topic path
-    merged_results = [". ".join(examples) for examples in grouped_examples.values()]
-    
-    return merged_results
+    return results
