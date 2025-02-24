@@ -6,6 +6,7 @@ from routes.contextual_chat import router as contextual_chat_router  # ✅ Impor
 from routes.flan_t5_inference import run_flan_t5_model  # ✅ Import Flan-T5 processing
 from ai_helpers import correct_spelling, detect_user_mood, get_llm_response, load_chat_history, save_chat_history
 from faiss_helper import search_faiss
+from routes.tts import router as tts_router
 import openai  # ✅ Import OpenAI
 import json
 import os
@@ -173,6 +174,7 @@ async def chat_with_gpt(chat_request: ChatRequest):
 # ✅ Include artifact and contextual chat routers
 app.include_router(artifact_router)
 app.include_router(contextual_chat_router)  # ✅ Register contextual chat endpoint
+app.include_router(tts_router)  # ✅ Register TTS streaming endpoint
 
 # ✅ Start the FastAPI server when running the script directly
 if __name__ == "__main__":
