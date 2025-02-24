@@ -1,13 +1,13 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-# from routes.artifact import router as artifact_router
+from routes.artifact import router as artifact_router
 from routes.contextual_chat import router as contextual_chat_router  # ✅ Import new route
 from routes.flan_t5_inference import run_flan_t5_model  # ✅ Import Flan-T5 processing
 from ai_helpers import correct_spelling, detect_user_mood, get_llm_response, load_chat_history, save_chat_history
 from faiss_helper import search_faiss
 from routes.tts import router as tts_router
-from routes.chat_manager import router as chat_router
+# from routes.chat_manager import router as chat_router
 import openai  # ✅ Import OpenAI
 import json
 import os
@@ -173,8 +173,8 @@ async def chat_with_gpt(chat_request: ChatRequest):
 
 
 # ✅ Include artifact and contextual chat routers
-app.include_router(chat_router)
-# app.include_router(artifact_router)
+# app.include_router(chat_router)
+app.include_router(artifact_router)
 app.include_router(contextual_chat_router)  # ✅ Register contextual chat endpoint
 app.include_router(tts_router)  # ✅ Register TTS streaming endpoint
 
