@@ -1,0 +1,17 @@
+{
+    "12345": {
+        "name": "John Doe",
+        "age": 35,
+        "weekly_mileage": 40,
+        "race_type": "marathon",
+        "best_time": "3:25:00",
+        "best_time_date": "2022-10-15",
+        "last_time": "3:45:00",
+        "last_time_date": "2023-10-15",
+        "target_race": "Boston Marathon",
+        "target_time": "3:20:00",
+        "injury_history": ["Hamstring strain"],
+        "nutrition": ["No meat", "Eats spinach daily"],
+        "last_check_in": "2025-01-15"
+    }
+}
