@@ -5,6 +5,8 @@ import os
 import uuid
 import jwt  # JWT for authentication
 from datetime import datetime, timedelta
+from typing import List
+from pydantic import Field
 
 auth_router = APIRouter()
 
