@@ -10,8 +10,11 @@ from pydantic import Field
 
 auth_router = APIRouter()
 
-USER_DATA_FILE = "users.json"
-USER_PROFILE_DATA_FILE = "user_profile.json"
+# Ensure the paths are correctly referencing the root directory
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+USER_DATA_FILE = os.path.join(BASE_DIR, "users.json")
+USER_PROFILE_DATA_FILE = os.path.join(BASE_DIR, "user_profile.json")
+
 SECRET_KEY = "your_secret_key_here"
 ALGORITHM = "HS256"
 TOKEN_EXPIRATION_MINUTES = 30
