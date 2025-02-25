@@ -13,8 +13,8 @@ def get_welcome_message():
     """Get a simple welcome message for users."""
     return "Hi there! I'm your running coach. How can I help you today?"
 
-# Add this endpoint
-@app.get("/chat/start")
+# Change @app.get to @router.get
+@router.get("/chat/start")
 async def start_chat():
     """Start a new chat session with a welcome message."""
     return {
