@@ -34,8 +34,8 @@ class UserProfile(BaseModel):
     last_time_date: str = ""
     target_race: str = ""
     target_time: str = ""
-    injury_history: list = []
-    nutrition: list = []
+    injury_history: List[str] = Field(default_factory=list)
+    nutrition: List[str] = Field(default_factory=list)
     last_check_in: str = ""
 
 def load_data(file_path):
