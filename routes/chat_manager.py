@@ -8,6 +8,22 @@ router = APIRouter()
 
 CHAT_HISTORY_FILE = "chat_history.json"
 
+# Add this function
+def get_welcome_message():
+    """Get a simple welcome message for users."""
+    return "Hi there! I'm your running coach. How can I help you today?"
+
+# Add this endpoint
+@router.get("/chat/start")
+async def start_chat():
+    """
+    Start a new chat session with a welcome message.
+    """
+    return {
+        "message": get_welcome_message(),
+        "profile_complete": True  # Simplify for now
+    }
+
 class ChatInput(BaseModel):
     message: str
 
