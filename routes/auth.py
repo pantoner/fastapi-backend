@@ -30,6 +30,7 @@ class UserLogin(BaseModel):
 
 class UserProfile(BaseModel):
     user_id: str
+    name: str
     age: int = 0
     weekly_mileage: int = 0
     race_type: str = ""
