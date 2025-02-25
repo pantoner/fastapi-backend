@@ -133,9 +133,6 @@ def query_openai_model(prompt):
             print(f"❌ OpenAI API Error: {response.status_code} - {response.text}")
             return "Error: Unable to get response."
 
-        except Exception as e:
-            print(f"❌ Exception in OpenAI API call: {str(e)}")
-            return "Error: Unable to get response."
 
 
 # # ✅ API Route: Chat with OpenAI GPT-4
