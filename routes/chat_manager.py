@@ -14,14 +14,12 @@ def get_welcome_message():
     return "Hi there! I'm your running coach. How can I help you today?"
 
 # Add this endpoint
-@router.get("/chat/start")
+@app.get("/chat/start")
 async def start_chat():
-    """
-    Start a new chat session with a welcome message.
-    """
+    """Start a new chat session with a welcome message."""
     return {
-        "message": get_welcome_message(),
-        "profile_complete": True  # Simplify for now
+        "message": "Hi there! I'm your running coach. How can I help you today?",
+        "profile_complete": True
     }
 
 class ChatInput(BaseModel):

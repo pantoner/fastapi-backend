@@ -72,6 +72,15 @@ def load_user_profile(user_id):
         raise HTTPException(status_code=404, detail="User profile not found.")
     return user_profile
 
+
+@app.get("/chat/start")
+async def start_chat():
+    """Start a new chat session with a welcome message."""
+    return {
+        "message": "Hi there! I'm your running coach. How can I help you today?",
+        "profile_complete": True
+    }
+
 # # ✅ API Route: Login Endpoint
 # @app.post("/auth/login")
 # async def login(request: LoginRequest):
