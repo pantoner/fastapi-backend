@@ -60,12 +60,16 @@ def load_users():
 
 USER_PROFILE_FILE = "user_profile.json"
 
-def load_user_profile():
-    """Load user profile from JSON file."""
+def load_user_profile(user_id):
+    """Load a specific user's profile from JSON file."""
     if not os.path.exists(USER_PROFILE_FILE):
         raise HTTPException(status_code=404, detail="User profile not found.")
     with open(USER_PROFILE_FILE, "r") as f:
-        return json.load(f)
+        profiles = json.load(f)
+    user_profile = profiles.get(user_id)
+    if not user_profile:
+        raise HTTPException(status_code=404, detail="User profile not found.")
+    return user_profile
 
 # # ✅ API Route: Login Endpoint
 # @app.post("/auth/login")
@@ -125,9 +129,9 @@ def query_openai_model(prompt):
 
 # ✅ API Route: Chat with OpenAI GPT-4
 @app.post("/chat")
-async def chat_with_gpt(chat_request: ChatRequest):
-    # ✅ Load user profile
-    user_profile = load_user_profile()
+async def chat_with_gpt(chat_request: ChatRequest, current_user_id: str = Depends(get_current_user_id)):
+    # ✅ Load user profile for current user only
+    user_profile = load_user_profile(current_user_id)
     profile_text = json.dumps(user_profile, indent=2)
 
     # ✅ Load chat history
