@@ -31,15 +31,15 @@ app.add_middleware(
 if not os.getenv("RENDER_EXTERNAL_HOSTNAME"):  # ✅ Only load .env in local development
     load_dotenv()
 
-# ✅ Load OpenAI API Key from Environment Variable
-# OPENAI_API_KEY = os.getenv(OPENAI_API_KEY)
-OPENAI_API_KEY = "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"
-
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")  # Fixed: added quotes around parameter
 
 if not OPENAI_API_KEY:
-    raise RuntimeError("OpenAI API key is missing!")
-openai.api_key = OPENAI_API_KEY
-
+    print("WARNING: OpenAI API key is missing. Using fallback responses.")
+    USING_OPENAI = False
+else:
+    USING_OPENAI = True
+    openai.api_key = OPENAI_API_KEY
+    
 # ✅ Paths to JSON files
 USERS_FILE = "users.json"
 CHAT_HISTORY_FILE = "chat_history.json"
