@@ -3,13 +3,17 @@ import os
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import List, Optional
-from routes.auth import get_current_user_id  # Import from correct module path
+from routes.auth import get_current_user_id
 from ai_helpers import correct_spelling, detect_user_mood, get_llm_response
 
 router = APIRouter()
 
-CHAT_HISTORY_FILE = "chat_history.json"
+# Use user-specific chat history files
+CHAT_HISTORY_DIR = "chat_histories"
 USER_PROFILE_DATA_FILE = "user_profile.json"
+
+# Create chat history directory if it doesn't exist
+os.makedirs(CHAT_HISTORY_DIR, exist_ok=True)
 
 class ChatInput(BaseModel):
     message: str
@@ -23,44 +27,32 @@ class ProfileUpdateInput(BaseModel):
     field_value_int: Optional[int] = None
     field_value_list: Optional[List[str]] = None
 
-def load_chat_history():
-    """Load the last 10 chat messages or create an empty file if missing."""
-    if not os.path.exists(CHAT_HISTORY_FILE):
-        with open(CHAT_HISTORY_FILE, "w") as f:
+def get_chat_history_path(user_id: str):
+    """Get user-specific chat history file path."""
+    return os.path.join(CHAT_HISTORY_DIR, f"{user_id}_history.json")
+
+def load_chat_history(user_id: str):
+    """Load chat history for a specific user."""
+    file_path = get_chat_history_path(user_id)
+    if not os.path.exists(file_path):
+        with open(file_path, "w") as f:
             json.dump([], f)
         return []
     
     try:
-        with open(CHAT_HISTORY_FILE, "r") as f:
+        with open(file_path, "r") as f:
             history = json.load(f)
     except json.JSONDecodeError:
         history = []
-        save_chat_history(history)  # Reset chat history if it's corrupted
+        save_chat_history(user_id, history)
     
-    return history[-10:]  # Keep only the last 10 messages
+    return history[-10:]
 
-def save_chat_history(history):
-    """Save chat history to chat_history.json."""
-    with open(CHAT_HISTORY_FILE, "w") as f:
+def save_chat_history(user_id: str, history):
+    """Save chat history for a specific user."""
+    file_path = get_chat_history_path(user_id)
+    with open(file_path, "w") as f:
         json.dump(history, f, indent=4)
-
-def load_user_profile(user_id: str):
-    """Load user profile data with error handling."""
-    try:
-        if not os.path.exists(USER_PROFILE_DATA_FILE):
-            return create_empty_profile(user_id)
-        
-        with open(USER_PROFILE_DATA_FILE, "r") as file:
-            profiles = json.load(file)
-        
-        # If user profile doesn't exist, create a new one with default values
-        if user_id not in profiles:
-            return create_empty_profile(user_id)
-        
-        return profiles[user_id]
-    except Exception as e:
-        print(f"Error loading user profile: {str(e)}")
-        return create_empty_profile(user_id)
 
 def create_empty_profile(user_id: str):
     """Create an empty profile structure with default values."""
@@ -81,6 +73,41 @@ def create_empty_profile(user_id: str):
         "last_check_in": ""
     }
 
+def load_user_profile(user_id: str):
+    """Load user profile data."""
+    try:
+        if not os.path.exists(USER_PROFILE_DATA_FILE):
+            # No profiles file exists yet
+            empty_profile = create_empty_profile(user_id)
+            
+            # Create the file with this user
+            profiles = {user_id: empty_profile}
+            with open(USER_PROFILE_DATA_FILE, "w") as file:
+                json.dump(profiles, file, indent=4)
+                
+            return empty_profile
+        
+        with open(USER_PROFILE_DATA_FILE, "r") as file:
+            profiles = json.load(file)
+        
+        if user_id not in profiles:
+            # User doesn't exist in profiles yet
+            empty_profile = create_empty_profile(user_id)
+            
+            # Add this user to profiles
+            profiles[user_id] = empty_profile
+            with open(USER_PROFILE_DATA_FILE, "w") as file:
+                json.dump(profiles, file, indent=4)
+                
+            return empty_profile
+        
+        # User exists in profiles
+        return profiles[user_id]
+        
+    except Exception as e:
+        print(f"Error loading user profile: {str(e)}")
+        return create_empty_profile(user_id)
+
 def save_user_profile(user_id: str, updated_profile: dict):
     """Save user profile data."""
     try:
@@ -90,26 +117,46 @@ def save_user_profile(user_id: str, updated_profile: dict):
             with open(USER_PROFILE_DATA_FILE, "r") as file:
                 profiles = json.load(file)
         
-        # If this is a completely new profile being saved
+        # Ensure all required fields exist
         if user_id not in profiles:
-            # Ensure all fields are present
-            empty_profile = create_empty_profile(user_id)
-            
-            # Update with provided values
+            base_profile = create_empty_profile(user_id)
             for key, value in updated_profile.items():
-                if key in empty_profile:
-                    empty_profile[key] = value
-            
-            profiles[user_id] = empty_profile
+                if key in base_profile:
+                    base_profile[key] = value
+            profiles[user_id] = base_profile
         else:
-            # If the profile exists, update with new values
+            # Update existing profile
             for key, value in updated_profile.items():
                 profiles[user_id][key] = value
         
         with open(USER_PROFILE_DATA_FILE, "w") as file:
             json.dump(profiles, file, indent=4)
+            
     except Exception as e:
         print(f"Error saving user profile: {str(e)}")
+
+def is_profile_complete(profile: dict):
+    """Check if all required fields in the profile are filled."""
+    # String fields
+    string_fields = ["name", "race_type", "best_time", "best_time_date", 
+                    "last_time", "last_time_date", "target_race", "target_time"]
+    for field in string_fields:
+        if not profile.get(field, "").strip():
+            return False
+    
+    # Numeric fields
+    numeric_fields = ["age", "weekly_mileage"]
+    for field in numeric_fields:
+        if profile.get(field, 0) == 0:
+            return False
+    
+    # List fields
+    list_fields = ["injury_history", "nutrition"]
+    for field in list_fields:
+        if not profile.get(field, []):
+            return False
+    
+    return True
 
 def get_next_empty_profile_field(profile: dict):
     """
@@ -132,17 +179,17 @@ def get_next_empty_profile_field(profile: dict):
     }
     
     for field, prompt in field_prompts.items():
-        # For string fields
+        # String fields
         if field in ["name", "race_type", "best_time", "best_time_date", "last_time", 
-                   "last_time_date", "target_race", "target_time"] and not profile[field]:
+                   "last_time_date", "target_race", "target_time"] and not profile.get(field, "").strip():
             return field, prompt
         
-        # For numeric fields
-        if field in ["age", "weekly_mileage"] and profile[field] == 0:
+        # Numeric fields
+        if field in ["age", "weekly_mileage"] and profile.get(field, 0) == 0:
             return field, prompt
         
-        # For list fields
-        if field in ["injury_history", "nutrition"] and not profile[field]:
+        # List fields
+        if field in ["injury_history", "nutrition"] and not profile.get(field, []):
             return field, prompt
     
     return None, None
@@ -151,28 +198,32 @@ def get_next_empty_profile_field(profile: dict):
 def start_chat(current_user_id: str = Depends(get_current_user_id)):
     """
     Start a new chat session and check if the user profile is populated.
+    Handles all three scenarios appropriately.
     """
     user_profile = load_user_profile(current_user_id)
     
-    # Check if name is already set
-    if user_profile["name"]:
-        # Check if there are other empty fields to fill
-        next_field, prompt = get_next_empty_profile_field(user_profile)
-        
-        if next_field:
-            return {
-                "message": f"Hello {user_profile['name']}, I see we still need some information for your profile. {prompt}",
-                "next_field": next_field
-            }
-        else:
-            return {
-                "message": f"Hello {user_profile['name']}, how are you today? How can I help you with your running?",
-                "profile_complete": True
-            }
-    else:
-        # No name set yet
+    # Check if profile is complete
+    if is_profile_complete(user_profile):
+        # Scenario 1: Complete profile
         return {
-            "message": "Hello, thanks for logging in. Let me get to know you so that I can provide better help. What's your name?",
+            "message": f"Hello {user_profile['name']}, how are you today? How can I help you with your running?",
+            "profile_complete": True
+        }
+    
+    # Scenario 2 & 3: Either empty existing profile or new profile
+    # In both cases, we want to prompt for missing information
+    next_field, prompt = get_next_empty_profile_field(user_profile)
+    
+    # Check if at least name is set
+    if user_profile.get("name", "").strip():
+        return {
+            "message": f"Hello {user_profile['name']}, I see your profile isn't complete. {prompt}",
+            "next_field": next_field
+        }
+    else:
+        # Name is not set (first question)
+        return {
+            "message": "Hello, thanks for logging in. Let me get to know you so I can provide better help. What's your name?",
             "next_field": "name"
         }
 
@@ -195,12 +246,12 @@ def set_user_name(user_input: UserNameInput, current_user_id: str = Depends(get_
     
     if next_field:
         return {
-            "message": f"Nice to meet you, {name}! Let's fill out your profile. {prompt}",
+            "message": f"Nice to meet you, {name}! Let's complete your profile. {prompt}",
             "next_field": next_field
         }
     else:
         return {
-            "message": f"Nice to meet you, {name}! Your profile is complete. How can I help you with your running?",
+            "message": f"Nice to meet you, {name}! Your profile is now complete. How can I help you with your running?",
             "profile_complete": True
         }
 
@@ -222,6 +273,8 @@ def update_profile_field(
         user_profile[field_name] = update.field_value_list
     elif update.field_value is not None:
         # For string fields
+        if field_name == "name" and not update.field_value.strip():
+            raise HTTPException(status_code=400, detail="Name cannot be empty.")
         user_profile[field_name] = update.field_value.strip()
     else:
         raise HTTPException(status_code=400, detail="Invalid field value provided.")
@@ -255,6 +308,27 @@ async def chat_with_ai(chat_input: ChatInput, current_user_id: str = Depends(get
     # Load user profile to personalize responses
     user_profile = load_user_profile(current_user_id)
     
+    # Check if profile is incomplete - if so, route to profile completion
+    if not is_profile_complete(user_profile):
+        next_field, prompt = get_next_empty_profile_field(user_profile)
+        
+        # If no name set, interpret this message as the name
+        if next_field == "name":
+            user_profile["name"] = user_message
+            save_user_profile(current_user_id, user_profile)
+            
+            next_field, prompt = get_next_empty_profile_field(user_profile)
+            return {
+                "response": f"Nice to meet you, {user_message}! Let's complete your profile. {prompt}",
+                "next_field": next_field
+            }
+        else:
+            # For other profile fields, remind user to complete profile first
+            return {
+                "response": f"Before we chat, let's complete your profile. {prompt}",
+                "next_field": next_field
+            }
+    
     # Apply AI functions
     corrected_message = correct_spelling(user_message)
     mood = detect_user_mood(corrected_message)
@@ -263,13 +337,13 @@ async def chat_with_ai(chat_input: ChatInput, current_user_id: str = Depends(get
     ai_response = get_llm_response(corrected_message)
     
     # Add personalization if name is available
-    if user_profile["name"] and "Hello" in ai_response:
+    if user_profile.get("name", "") and "Hello" in ai_response:
         ai_response = ai_response.replace("Hello", f"Hello {user_profile['name']}")
     
-    # Load and update chat history
-    chat_history = load_chat_history()
+    # Load and update chat history - user specific
+    chat_history = load_chat_history(current_user_id)
     chat_history.append({"user": user_message, "bot": ai_response})
-    save_chat_history(chat_history)
+    save_chat_history(current_user_id, chat_history)
     
     return {"response": ai_response, "history": chat_history}
 
@@ -280,3 +354,19 @@ def get_profile(current_user_id: str = Depends(get_current_user_id)):
     """
     user_profile = load_user_profile(current_user_id)
     return user_profile
+
+@router.get("/debug/profile_status")
+def check_profile_status(current_user_id: str = Depends(get_current_user_id)):
+    """
+    Debugging endpoint to check profile status.
+    """
+    user_profile = load_user_profile(current_user_id)
+    next_field, prompt = get_next_empty_profile_field(user_profile)
+    
+    return {
+        "user_id": current_user_id,
+        "profile": user_profile,
+        "is_complete": is_profile_complete(user_profile),
+        "next_empty_field": next_field,
+        "next_prompt": prompt
+    }
