@@ -7,7 +7,7 @@ import os
 from ai_helpers import correct_spelling, detect_user_mood, get_llm_response
 from faiss_helper import search_faiss
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from main import query_openai_model
+from routes.openai_helpers import query_openai_model
 
 
 router = APIRouter()
