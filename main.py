@@ -67,14 +67,14 @@ def load_user_profile():
     with open(USER_PROFILE_FILE, "r") as f:
         return json.load(f)
 
-# ✅ API Route: Login Endpoint
-@app.post("/auth/login")
-async def login(request: LoginRequest):
-    users = load_users()
-    for user in users:
-        if user["email"] == request.email and user["password"] == request.password:
-            return {"access_token": "mock-jwt-token", "token_type": "bearer"}
-    raise HTTPException(status_code=401, detail="Invalid email or password")
+# # ✅ API Route: Login Endpoint
+# @app.post("/auth/login")
+# async def login(request: LoginRequest):
+#     users = load_users()
+#     for user in users:
+#         if user["email"] == request.email and user["password"] == request.password:
+#             return {"access_token": "mock-jwt-token", "token_type": "bearer"}
+#     raise HTTPException(status_code=401, detail="Invalid email or password")
 
 # ✅ API Route: Retrieve Chat History
 @app.get("/chat-history")
