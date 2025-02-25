@@ -8,6 +8,7 @@ from ai_helpers import correct_spelling, detect_user_mood, get_llm_response
 from faiss_helper import search_faiss
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from routes.openai_helpers import query_openai_model
+from routes.auth import get_current_user_id
 
 
 router = APIRouter()
