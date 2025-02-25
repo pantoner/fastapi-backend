@@ -45,11 +45,20 @@ class UserProfile(BaseModel):
     last_check_in: str = ""
 
 def load_data(file_path):
-    """Load data from a JSON file."""
-    if not os.path.exists(file_path):
+    """Load data from a JSON file with detailed error logging."""
+    try:
+        if not os.path.exists(file_path):
+            print(f"File not found: {file_path} (absolute path: {os.path.abspath(file_path)})")
+            return {}
+        with open(file_path, "r") as file:
+            return json.load(file)
+    except json.JSONDecodeError as e:
+        print(f"JSON decode error in {file_path}: {str(e)}")
         return {}
-    with open(file_path, "r") as file:
-        return json.load(file)
+    except Exception as e:
+        print(f"Error loading data from {file_path}: {str(e)}")
+        print(traceback.format_exc())
+        return {}
 
 def save_data(file_path, data):
     """Save data to a JSON file."""
@@ -63,14 +72,19 @@ def create_jwt_token(user_id: str):
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
 def decode_jwt_token(token: str):
-    """Decode and verify a JWT token."""
+    """Decode and verify a JWT token with better error handling."""
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return payload["sub"]
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Token has expired")
-    except jwt.InvalidTokenError:
-        raise HTTPException(status_code=401, detail="Invalid token")
+    except jwt.InvalidTokenError as e:
+        print(f"Invalid token error: {str(e)}")
+        raise HTTPException(status_code=401, detail=f"Invalid token: {str(e)}")
+    except Exception as e:
+        print(f"Unexpected token error: {str(e)}")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail="Internal server error processing token")
 
 def get_current_user_id(authorization: str = Header(None)):
     """Extract user ID from JWT token in Authorization header."""
@@ -123,3 +137,15 @@ def get_user_details(current_user_id: str = Depends(get_current_user_id)):
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
     return {"email": user["email"], "name": user["name"]}
+
+
+@auth_router.get("/debug")
+def debug_paths():
+    return {
+        "BASE_DIR": BASE_DIR,
+        "USER_DATA_FILE": USER_DATA_FILE,
+        "USER_DATA_FILE_EXISTS": os.path.exists(USER_DATA_FILE),
+        "USER_PROFILE_DATA_FILE": USER_PROFILE_DATA_FILE,
+        "USER_PROFILE_DATA_FILE_EXISTS": os.path.exists(USER_PROFILE_DATA_FILE),
+        "CWD": os.getcwd()
+    }
