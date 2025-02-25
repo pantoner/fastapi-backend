@@ -73,13 +73,13 @@ def load_user_profile(user_id):
     return user_profile
 
 
-@app.get("/chat/start")
-async def start_chat():
-    """Start a new chat session with a welcome message."""
-    return {
-        "message": "Hi there! I'm your running coach. How can I help you today?",
-        "profile_complete": True
-    }
+# @app.get("/chat/start")
+# async def start_chat():
+#     """Start a new chat session with a welcome message."""
+#     return {
+#         "message": "Hi there! I'm your running coach. How can I help you today?",
+#         "profile_complete": True
+#     }
 
 # # ✅ API Route: Login Endpoint
 # @app.post("/auth/login")
@@ -137,54 +137,54 @@ def query_openai_model(prompt):
         return "Error: Unable to get response."
 
 
-# ✅ API Route: Chat with OpenAI GPT-4
-@app.post("/chat")
-async def chat_with_gpt(chat_request: ChatRequest, current_user_id: str = Depends(get_current_user_id)):
-    # ✅ Load user profile for current user only
-    user_profile = load_user_profile(current_user_id)
-    profile_text = json.dumps(user_profile, indent=2)
+# # ✅ API Route: Chat with OpenAI GPT-4
+# @app.post("/chat")
+# async def chat_with_gpt(chat_request: ChatRequest, current_user_id: str = Depends(get_current_user_id)):
+#     # ✅ Load user profile for current user only
+#     user_profile = load_user_profile(current_user_id)
+#     profile_text = json.dumps(user_profile, indent=2)
 
-    # ✅ Load chat history
-    chat_history = load_chat_history()
-    corrected_message = correct_spelling(chat_request.message)
-    mood = detect_user_mood(corrected_message)
+#     # ✅ Load chat history
+#     chat_history = load_chat_history()
+#     corrected_message = correct_spelling(chat_request.message)
+#     mood = detect_user_mood(corrected_message)
 
-    # ✅ Format chat history for LLM
-    formatted_history = "\n".join(
-        [f"You: {entry['user']}\nGPT: {entry['bot']}" for entry in chat_history]
-    )
+#     # ✅ Format chat history for LLM
+#     formatted_history = "\n".join(
+#         [f"You: {entry['user']}\nGPT: {entry['bot']}" for entry in chat_history]
+#     )
 
-    # ✅ Retrieve relevant knowledge from FAISS
-    retrieved_contexts = search_faiss(corrected_message, top_k=3)
-    retrieved_text = "\n".join(retrieved_contexts) if retrieved_contexts else "No relevant data found."
+#     # ✅ Retrieve relevant knowledge from FAISS
+#     retrieved_contexts = search_faiss(corrected_message, top_k=3)
+#     retrieved_text = "\n".join(retrieved_contexts) if retrieved_contexts else "No relevant data found."
 
-    # ✅ Construct full chat prompt
-    full_prompt = (
-        "**ROLE & OBJECTIVE:**\n"
-        "You are a **collaborative running coach** who provides **brief, engaging responses**. "
-        "You **MUST keep answers under 50 words** and **ALWAYS end with a follow-up question**. "
-        "DO NOT give lists or detailed breakdowns. Instead, ask the user about their preferences.\n\n"
+#     # ✅ Construct full chat prompt
+#     full_prompt = (
+#         "**ROLE & OBJECTIVE:**\n"
+#         "You are a **collaborative running coach** who provides **brief, engaging responses**. "
+#         "You **MUST keep answers under 50 words** and **ALWAYS end with a follow-up question**. "
+#         "DO NOT give lists or detailed breakdowns. Instead, ask the user about their preferences.\n\n"
 
-        f"**USER PROFILE:**\n{profile_text}\n\n"
+#         f"**USER PROFILE:**\n{profile_text}\n\n"
 
-        "**EXAMPLES FROM TRAINING DATA:**\n"
-        f"{retrieved_text}\n\n"
+#         "**EXAMPLES FROM TRAINING DATA:**\n"
+#         f"{retrieved_text}\n\n"
 
-        f"**CURRENT USER MESSAGE:**\n{corrected_message}\n\n"
+#         f"**CURRENT USER MESSAGE:**\n{corrected_message}\n\n"
 
-        "**COACH RESPONSE:**\n"
-        "You MUST keep your response **under 50 words** and **always ask a follow-up question to ask if the runner feels good with the recommendation**."
-    )
+#         "**COACH RESPONSE:**\n"
+#         "You MUST keep your response **under 50 words** and **always ask a follow-up question to ask if the runner feels good with the recommendation**."
+#     )
 
-    # ✅ Call OpenAI GPT-4 API
-    gpt_response = query_openai_model(full_prompt)
+#     # ✅ Call OpenAI GPT-4 API
+#     gpt_response = query_openai_model(full_prompt)
 
 
-    # ✅ Save chat history
-    chat_history.append({"user": chat_request.message, "bot": gpt_response})
-    save_chat_history(chat_history)
+#     # ✅ Save chat history
+#     chat_history.append({"user": chat_request.message, "bot": gpt_response})
+#     save_chat_history(chat_history)
 
-    return {"response": gpt_response, "history": chat_history}
+#     return {"response": gpt_response, "history": chat_history}
 
 
 # ✅ Include artifact and contextual chat routers
