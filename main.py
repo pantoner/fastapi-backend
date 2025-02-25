@@ -1,19 +1,20 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-# from routes.artifact import router as artifact_router
-from routes.contextual_chat import router as contextual_chat_router  # ✅ Import new route
-from routes.flan_t5_inference import run_flan_t5_model  # ✅ Import Flan-T5 processing
+from routes.contextual_chat import router as contextual_chat_router
+from routes.flan_t5_inference import run_flan_t5_model
 from ai_helpers import correct_spelling, detect_user_mood, get_llm_response, load_chat_history, save_chat_history
 from faiss_helper import search_faiss
 from routes.tts import router as tts_router
 from routes.chat_manager import router as chat_router
-from routes.auth import auth_router  # Import the router from auth.py in the routes folder
-import openai  # ✅ Import OpenAI
+from routes.auth import auth_router, get_current_user_id  # Import get_current_user_id
+import openai
 import json
 import os
 from dotenv import load_dotenv
 import requests
+# from routes.artifact import router as artifact_router
+
 
 app = FastAPI()
 
