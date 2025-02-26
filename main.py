@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from routes.artifact import router as artifact_router
 from routes.contextual_chat import router as contextual_chat_router  # ✅ Import new route
-from routes.flan_t5_inference import run_flan_t5_model  # ✅ Import Flan-T5 processing
+# from routes.flan_t5_inference import run_flan_t5_model  # ✅ Import Flan-T5 processing
 from ai_helpers import correct_spelling, detect_user_mood, get_llm_response, load_chat_history, save_chat_history
 from faiss_helper import search_faiss
 from routes.tts import router as tts_router
