@@ -29,8 +29,8 @@ if not os.getenv("RENDER_EXTERNAL_HOSTNAME"):  # ✅ Only load .env in local dev
     load_dotenv()
 
 # ✅ Load OpenAI API Key from Environment Variable
-# OPENAI_API_KEY = os.getenv(OPENAI_API_KEY)
-OPENAI_API_KEY = ""
+OPENAI_API_KEY = os.getenv(OPENAI_API_KEY)
+# OPENAI_API_KEY = ""
 
 
 if not OPENAI_API_KEY:
