@@ -1,21 +1,17 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from routes.contextual_chat import router as contextual_chat_router
-from routes.flan_t5_inference import run_flan_t5_model
+from routes.artifact import router as artifact_router
+from routes.contextual_chat import router as contextual_chat_router  # ✅ Import new route
+from routes.flan_t5_inference import run_flan_t5_model  # ✅ Import Flan-T5 processing
 from ai_helpers import correct_spelling, detect_user_mood, get_llm_response, load_chat_history, save_chat_history
 from faiss_helper import search_faiss
 from routes.tts import router as tts_router
-from routes.chat_manager import router as chat_router
-from routes.auth import auth_router, get_current_user_id  # Import get_current_user_id
-from routes.openai_helpers import query_openai_model
-import openai
+import openai  # ✅ Import OpenAI
 import json
 import os
 from dotenv import load_dotenv
 import requests
-# from routes.artifact import router as artifact_router
-
 
 app = FastAPI()
 
@@ -32,14 +28,14 @@ app.add_middleware(
 if not os.getenv("RENDER_EXTERNAL_HOSTNAME"):  # ✅ Only load .env in local development
     load_dotenv()
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")  # Fixed: added quotes around parameter
+# ✅ Load OpenAI API Key from Environment Variable
+# OPENAI_API_KEY = os.getenv(OPENAI_API_KEY)
+OPENAI_API_KEY = ""
+
 
 if not OPENAI_API_KEY:
-    print("WARNING: OpenAI API key is missing. Using fallback responses.")
-    USING_OPENAI = False
-else:
-    USING_OPENAI = True
-    openai.api_key = OPENAI_API_KEY
+    raise RuntimeError("OpenAI API key is missing!")
+openai.api_key = OPENAI_API_KEY
 
 # ✅ Paths to JSON files
 USERS_FILE = "users.json"
@@ -62,34 +58,21 @@ def load_users():
 
 USER_PROFILE_FILE = "user_profile.json"
 
-def load_user_profile(user_id):
-    """Load a specific user's profile from JSON file."""
+def load_user_profile():
+    """Load user profile from JSON file."""
     if not os.path.exists(USER_PROFILE_FILE):
         raise HTTPException(status_code=404, detail="User profile not found.")
     with open(USER_PROFILE_FILE, "r") as f:
-        profiles = json.load(f)
-    user_profile = profiles.get(user_id)
-    if not user_profile:
-        raise HTTPException(status_code=404, detail="User profile not found.")
-    return user_profile
+        return json.load(f)
 
-
-# @app.get("/chat/start")
-# async def start_chat():
-#     """Start a new chat session with a welcome message."""
-#     return {
-#         "message": "Hi there! I'm your running coach. How can I help you today?",
-#         "profile_complete": True
-#     }
-
-# # ✅ API Route: Login Endpoint
-# @app.post("/auth/login")
-# async def login(request: LoginRequest):
-#     users = load_users()
-#     for user in users:
-#         if user["email"] == request.email and user["password"] == request.password:
-#             return {"access_token": "mock-jwt-token", "token_type": "bearer"}
-#     raise HTTPException(status_code=401, detail="Invalid email or password")
+# ✅ API Route: Login Endpoint
+@app.post("/auth/login")
+async def login(request: LoginRequest):
+    users = load_users()
+    for user in users:
+        if user["email"] == request.email and user["password"] == request.password:
+            return {"access_token": "mock-jwt-token", "token_type": "bearer"}
+    raise HTTPException(status_code=401, detail="Invalid email or password")
 
 # ✅ API Route: Retrieve Chat History
 @app.get("/chat-history")
@@ -133,64 +116,71 @@ def query_openai_model(prompt):
             print(f"❌ OpenAI API Error: {response.status_code} - {response.text}")
             return "Error: Unable to get response."
 
+    except Exception as e:
+        print(f"❌ Exception in OpenAI API call: {str(e)}")
+        return "Error: Unable to get response."
 
 
-# # ✅ API Route: Chat with OpenAI GPT-4
-# @app.post("/chat")
-# async def chat_with_gpt(chat_request: ChatRequest, current_user_id: str = Depends(get_current_user_id)):
-#     # ✅ Load user profile for current user only
-#     user_profile = load_user_profile(current_user_id)
-#     profile_text = json.dumps(user_profile, indent=2)
+# ✅ API Route: Chat with OpenAI GPT-4
+@app.post("/chat")
+async def chat_with_gpt(chat_request: ChatRequest):
+    # ✅ Load user profile
+    user_profile = load_user_profile()
+    profile_text = json.dumps(user_profile, indent=2)
 
-#     # ✅ Load chat history
-#     chat_history = load_chat_history()
-#     corrected_message = correct_spelling(chat_request.message)
-#     mood = detect_user_mood(corrected_message)
+    # ✅ Load chat history
+    chat_history = load_chat_history()
+    corrected_message = correct_spelling(chat_request.message)
+    mood = detect_user_mood(corrected_message)
 
-#     # ✅ Format chat history for LLM
-#     formatted_history = "\n".join(
-#         [f"You: {entry['user']}\nGPT: {entry['bot']}" for entry in chat_history]
-#     )
+    # ✅ Format chat history for LLM
+    formatted_history = "\n".join(
+        [f"You: {entry['user']}\nGPT: {entry['bot']}" for entry in chat_history]
+    )
 
-#     # ✅ Retrieve relevant knowledge from FAISS
-#     retrieved_contexts = search_faiss(corrected_message, top_k=3)
-#     retrieved_text = "\n".join(retrieved_contexts) if retrieved_contexts else "No relevant data found."
+    # ✅ Retrieve relevant knowledge from FAISS
+    retrieved_contexts = search_faiss(corrected_message, top_k=3)
+    retrieved_text = "\n".join(retrieved_contexts) if retrieved_contexts else "No relevant data found."
 
-#     # ✅ Construct full chat prompt
-#     full_prompt = (
-#         "**ROLE & OBJECTIVE:**\n"
-#         "You are a **collaborative running coach** who provides **brief, engaging responses**. "
-#         "You **MUST keep answers under 50 words** and **ALWAYS end with a follow-up question**. "
-#         "DO NOT give lists or detailed breakdowns. Instead, ask the user about their preferences.\n\n"
+    # ✅ Construct full chat prompt
+    full_prompt = (
+        "**ROLE & OBJECTIVE:**\n"
+        "You are a **collaborative running coach** who provides **brief, engaging responses**. "
+        "You **MUST keep answers under 50 words** and **ALWAYS end with a follow-up question**. "
+        "DO NOT give lists or detailed breakdowns. Instead, ask the user about their preferences.\n\n"
 
-#         f"**USER PROFILE:**\n{profile_text}\n\n"
+        f"**USER PROFILE:**\n{profile_text}\n\n"
 
-#         "**EXAMPLES FROM TRAINING DATA:**\n"
-#         f"{retrieved_text}\n\n"
+        "**PREVIOUS CONVERSATION (Context):**\n"
+        f"{formatted_history}\n\n"  # ✅ NOW INCLUDED!
 
-#         f"**CURRENT USER MESSAGE:**\n{corrected_message}\n\n"
+        "**RETRIEVED KNOWLEDGE:**\n"
+        f"{retrieved_text}\n\n"
 
-#         "**COACH RESPONSE:**\n"
-#         "You MUST keep your response **under 50 words** and **always ask a follow-up question to ask if the runner feels good with the recommendation**."
-#     )
+        f"**CURRENT USER MESSAGE:**\n{corrected_message}\n\n"
 
-#     # ✅ Call OpenAI GPT-4 API
-#     gpt_response = query_openai_model(full_prompt)
+        "**COACH RESPONSE:**\n"
+        "You MUST keep your response **under 50 words** and **always ask a follow-up question to ask if the runner feels good with the recomendation**. "
+        # "Example:\n"
+        # "User: 'What should I do for my speed workout today?'\n"
+        # "Coach: 'Do you prefer hill sprints or short intervals today?'"
+    )
+
+    # ✅ Call OpenAI GPT-4 API
+    gpt_response = query_openai_model(full_prompt)
 
 
-#     # ✅ Save chat history
-#     chat_history.append({"user": chat_request.message, "bot": gpt_response})
-#     save_chat_history(chat_history)
+    # ✅ Save chat history
+    chat_history.append({"user": chat_request.message, "bot": gpt_response})
+    save_chat_history(chat_history)
 
-#     return {"response": gpt_response, "history": chat_history}
+    return {"response": gpt_response, "history": chat_history}
 
 
 # ✅ Include artifact and contextual chat routers
-app.include_router(chat_router)
-# app.include_router(artifact_router)
+app.include_router(artifact_router)
 app.include_router(contextual_chat_router)  # ✅ Register contextual chat endpoint
 app.include_router(tts_router)  # ✅ Register TTS streaming endpoint
-app.include_router(auth_router, prefix="/auth", tags=["auth"])
 
 # ✅ Start the FastAPI server when running the script directly
 if __name__ == "__main__":
