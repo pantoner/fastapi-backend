@@ -86,7 +86,27 @@ import json
 
 # ✅ Load OpenAI API Key
 
+conditional_responses = {
+    "Running": "Ok good! Tell me how many miles did you run last week?",
+    "Nutrition": "Great! Tell me how have you been eating lately?",
+    "Mindset": "Ok good! How have you been feeling?"
+}
+
 openai.api_key = OPENAI_API_KEY
+
+def categorize_message(message: str):
+    """Ask GPT to classify the user’s message into a predefined category."""
+    prompt = f"""
+    Classify the following user message into one of these categories:
+    - Running
+    - Nutrition
+    - Mindset
+    Respond with ONLY the category name, nothing else.
+
+    User message: {message}
+    """
+    response = query_openai_model(prompt)
+    return response.strip()  # Remove extra spaces/newlines
 
 def query_openai_model(prompt):
     """Send the formatted prompt to OpenAI GPT-4-turbo and return the response."""
@@ -133,48 +153,52 @@ async def chat_with_gpt(chat_request: ChatRequest):
     corrected_message = correct_spelling(chat_request.message)
     mood = detect_user_mood(corrected_message)
 
-    # ✅ Format chat history for LLM
-    formatted_history = "\n".join(
-        [f"You: {entry['user']}\nGPT: {entry['bot']}" for entry in chat_history]
-    )
+    # ✅ Step 1: Classify User Message
+    category = categorize_message(chat_request.message)
 
-    # ✅ Retrieve relevant knowledge from FAISS
-    retrieved_contexts = search_faiss(corrected_message, top_k=3)
-    retrieved_text = "\n".join(retrieved_contexts) if retrieved_contexts else "No relevant data found."
+    # ✅ Step 2: Use Predefined Conditional Responses
+    if category in conditional_responses:
+        response = conditional_responses[category]
+    else:
+        # ✅ Retrieve relevant knowledge from FAISS
+        retrieved_contexts = search_faiss(corrected_message, top_k=3)
+        retrieved_text = "\n".join(retrieved_contexts) if retrieved_contexts else "No relevant data found."
 
-    # ✅ Construct full chat prompt
-    full_prompt = (
-        "**ROLE & OBJECTIVE:**\n"
-        "You are a **collaborative running coach** who provides **brief, engaging responses**. "
-        "You **MUST keep answers under 50 words** and **ALWAYS end with a follow-up question**. "
-        "DO NOT give lists or detailed breakdowns. Instead, ask the user about their preferences.\n\n"
+        # ✅ Format chat history for LLM
+        formatted_history = "\n".join(
+            [f"You: {entry['user']}\nGPT: {entry['bot']}" for entry in chat_history]
+        )
 
-        f"**USER PROFILE:**\n{profile_text}\n\n"
+        # ✅ Construct full chat prompt
+        full_prompt = (
+            "**ROLE & OBJECTIVE:**\n"
+            "You are a **collaborative running coach** who provides **brief, engaging responses**. "
+            "You **MUST keep answers under 50 words** and **ALWAYS end with a follow-up question**. "
+            "DO NOT give lists or detailed breakdowns. Instead, ask the user about their preferences.\n\n"
 
-        "**PREVIOUS CONVERSATION (Context):**\n"
-        f"{formatted_history}\n\n"  # ✅ NOW INCLUDED!
+            f"**USER PROFILE:**\n{profile_text}\n\n"
 
-        "**RETRIEVED KNOWLEDGE:**\n"
-        f"{retrieved_text}\n\n"
+            "**PREVIOUS CONVERSATION (Context):**\n"
+            f"{formatted_history}\n\n"
 
-        f"**CURRENT USER MESSAGE:**\n{corrected_message}\n\n"
+            "**RETRIEVED KNOWLEDGE:**\n"
+            f"{retrieved_text}\n\n"
 
-        "**COACH RESPONSE:**\n"
-        "You MUST keep your response **under 50 words** and **always ask a follow-up question to ask if the runner feels good with the recomendation**. "
-        # "Example:\n"
-        # "User: 'What should I do for my speed workout today?'\n"
-        # "Coach: 'Do you prefer hill sprints or short intervals today?'"
-    )
+            f"**CURRENT USER MESSAGE:**\n{corrected_message}\n\n"
 
-    # ✅ Call OpenAI GPT-4 API
-    gpt_response = query_openai_model(full_prompt)
+            "**COACH RESPONSE:**\n"
+            "You MUST keep your response **under 50 words** and **always ask a follow-up question to ask if the runner feels good with the recommendation**."
+        )
 
+        # ✅ Call OpenAI GPT-4 API
+        response = query_openai_model(full_prompt)
 
     # ✅ Save chat history
-    chat_history.append({"user": chat_request.message, "bot": gpt_response})
+    chat_history.append({"user": chat_request.message, "bot": response})
     save_chat_history(chat_history)
 
-    return {"response": gpt_response, "history": chat_history}
+    return {"response": response, "history": chat_history}
+
 
 
 # ✅ Include artifact and contextual chat routers
