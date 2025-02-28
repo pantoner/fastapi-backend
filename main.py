@@ -201,7 +201,7 @@ async def chat_with_gpt(chat_request: ChatRequest):
 
 # ✅ API Route: Profile Chat
 @app.post("/profile-chat")
-async def profile_chat(request: ProfileChatRequest):
+async def profile_chat(request: ChatRequest):
     """Dedicated route for guiding the user through profile completion."""
     profile_data = load_user_profile()
 
