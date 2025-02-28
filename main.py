@@ -202,11 +202,39 @@ async def chat_with_gpt(chat_request: ChatRequest):
 # ✅ API Route: Profile Chat
 @app.post("/profile-chat")
 async def profile_chat(request: ChatRequest):
-    """Dedicated route for guiding the user through profile completion."""
+    """
+    Dedicated route for guiding the user through profile completion.
+    The model is strictly limited to the known profile fields and asked to confirm or update them.
+    """
     profile_data = load_user_profile()
 
-    # ✅ Construct profile-based prompt
+    # Enumerate the valid fields in the user profile
+    system_prompt = """
+    You have access to a user profile with these fields only:
+    - name
+    - age
+    - weekly_mileage
+    - race_type
+    - best_time
+    - best_time_date
+    - last_time
+    - last_time_date
+    - target_race
+    - target_time
+    - injury_history (list)
+    - nutrition (list)
+    - last_check_in
+
+    Your goal is to confirm or update these fields by asking the user if the values in the profile are still accurate.
+    If a field is missing or changed, ask the user for the correct information.
+    Do not introduce new fields or topics outside this profile.
+    Always keep your responses under 50 words and end with a follow-up question.
+    """
+
+    # Construct the final prompt, embedding the system prompt plus user profile and message
     full_prompt = f"""
+    {system_prompt}
+
     **USER PROFILE DETAILS:**
     {json.dumps(profile_data, indent=2)}
 
@@ -214,8 +242,8 @@ async def profile_chat(request: ChatRequest):
     {request.message}
 
     **TASK:**
-    1. Identify missing fields in the user's profile.
-    2. Ask a relevant question to collect missing data.
+    1. Identify missing or outdated fields in the user's profile.
+    2. Ask short questions to confirm or update them.
     3. If the profile is complete, ask about training goals.
     """
 
@@ -225,6 +253,7 @@ async def profile_chat(request: ChatRequest):
         "assistant_response": response,
         "profile_data": profile_data
     }
+
 
 
 # ✅ Include artifact and contextual chat routers
