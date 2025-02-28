@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import openai
 import json
@@ -6,11 +7,19 @@ import os
 from dotenv import load_dotenv
 import requests
 
-# --------------------------------------------------
-# ✅ ENVIRONMENT & APP SETUP
-# --------------------------------------------------
+# ✅ Initialize FastAPI App
 app = FastAPI()
 
+# ✅ Enable CORS for frontend communication (same as `main.py`)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Adjust for production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# ✅ Load environment variables
 if not os.getenv("RENDER_EXTERNAL_HOSTNAME"):
     load_dotenv()
 
@@ -20,33 +29,24 @@ if not OPENAI_API_KEY:
 
 openai.api_key = OPENAI_API_KEY
 
-# --------------------------------------------------
-# ✅ PATHS & MODELS
-# --------------------------------------------------
+# ✅ Paths to JSON Files
 USER_PROFILE_FILE = "user_profile.json"
 
+# ✅ Pydantic Models
 class ProfileChatRequest(BaseModel):
     message: str
     email: str
 
-# --------------------------------------------------
-# ✅ HELPER FUNCTIONS
-# --------------------------------------------------
-
+# ✅ Function to Load or Create User Profile
 def load_user_profile(email: str):
-    """
-    Load or create a user's profile based on their email.
-    If the user doesn't exist in user_profile.json, create a blank profile.
-    """
+    """Load or create a user's profile in `user_profile.json`."""
     if not os.path.exists(USER_PROFILE_FILE):
-        # Create a blank JSON structure if file doesn't exist
         with open(USER_PROFILE_FILE, "w") as f:
             json.dump({}, f)
 
     with open(USER_PROFILE_FILE, "r") as f:
         profiles = json.load(f)
 
-    # If user doesn't have a profile yet, create an empty one
     if email not in profiles:
         profiles[email] = {
             "email": email,
@@ -69,26 +69,24 @@ def load_user_profile(email: str):
     return profiles[email]
 
 def save_user_profile(profiles):
-    """Save updated profiles to user_profile.json."""
+    """Save updated profiles to `user_profile.json`."""
     with open(USER_PROFILE_FILE, "w") as f:
         json.dump(profiles, f, indent=2)
 
-def query_openai_model_system(role_prompt: str, user_message: str):
-    """
-    Helper for specialized system instructions that differ from your main chat logic.
-    """
+# ✅ Query OpenAI API for Profile Setup
+def query_openai_model(prompt):
+    """Send a user message to OpenAI for profile setup assistance."""
     try:
-        headers = {
-            "Authorization": f"Bearer {OPENAI_API_KEY}",
-            "Content-Type": "application/json"
-        }
+        headers = {"Authorization": f"Bearer {OPENAI_API_KEY}", "Content-Type": "application/json"}
         payload = {
             "model": "gpt-4-turbo",
             "messages": [
-                {"role": "system", "content": role_prompt},
-                {"role": "user", "content": user_message}
+                {"role": "system", "content": "You are an AI assistant designed to help users complete their running profile. "
+                                              "Ask for missing information, confirm existing details, and guide them step by step. "
+                                              "Your responses must be under 50 words and always end with a follow-up question."},
+                {"role": "user", "content": prompt}
             ],
-            "max_tokens": 150
+            "max_tokens": 50
         }
 
         response = requests.post("https://api.openai.com/v1/chat/completions", json=payload, headers=headers)
@@ -103,40 +101,34 @@ def query_openai_model_system(role_prompt: str, user_message: str):
         print(f"❌ Exception in OpenAI API call: {str(e)}")
         return "Error: Unable to get response."
 
-# --------------------------------------------------
-# ✅ ROUTES
-# --------------------------------------------------
-
+# ✅ API Route: Profile Chat
 @app.post("/profile-chat")
-def profile_chat(request: ProfileChatRequest):
-    """
-    A specialized endpoint for guiding the user to fill out their profile.
-    Uses a distinct system role prompt to ask about user details (e.g. name, age).
-    """
-
-    # 1. Load or create the user's existing profile
+async def profile_chat(request: ProfileChatRequest):
+    """Dedicated route for guiding the user through profile completion."""
     profile_data = load_user_profile(request.email)
 
-    # 2. Define a specialized system prompt for collecting user profile data
-    system_prompt = (
-        "You are a friendly assistant dedicated to gathering user profile details for a running coach. "
-        "Your job is to ask targeted questions to fill out the user's profile: name, age, weekly mileage, "
-        "target race, best times, injury history, etc. Keep responses short (under 50 words) and always end "
-        "with a follow-up question about the user's info. Avoid giving coaching advice; only gather data."
-    )
+    # ✅ Construct profile-based prompt
+    full_prompt = f"""
+    **USER PROFILE DETAILS:**
+    {json.dumps(profile_data, indent=2)}
 
-    # 3. Call OpenAI with the user’s message
-    openai_response = query_openai_model_system(system_prompt, request.message)
+    **USER MESSAGE:**
+    {request.message}
 
-    # 4. Return the assistant's response
+    **TASK:**
+    1. Identify missing fields in the user's profile.
+    2. Ask a relevant question to collect missing data.
+    3. If the profile is complete, ask about training goals.
+    """
+
+    response = query_openai_model(full_prompt)
+
     return {
-        "assistant_response": openai_response,
+        "assistant_response": response,
         "profile_data": profile_data
     }
 
-# --------------------------------------------------
-# ✅ RUN THE SERVER
-# --------------------------------------------------
+# ✅ Start FastAPI Server
 if __name__ == "__main__":
     import uvicorn
     print("🚀 Starting Profile Setup Server on http://0.0.0.0:8001")
