@@ -110,7 +110,8 @@ def query_openai_model(prompt):
             "model": "gpt-4-turbo",
             "messages": [
                 {"role": "system", "content": "You are a short, collaborative running coach. "
-                                              "Your responses must be under 50 words and always end with a follow-up question."},
+                                              "Your responses must be under 50 words and always end with a follow-up question, ,and should not include any prefixes such as 'Response:,\
+                                              remember you are a coach talking to a runner!"},
                 {"role": "user", "content": prompt}
             ],
             "max_tokens": 50
