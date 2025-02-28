@@ -199,7 +199,32 @@ async def chat_with_gpt(chat_request: ChatRequest):
 
     return {"category": category, "response": bot_response, "history": chat_history}
 
+# ✅ API Route: Profile Chat
+@app.post("/profile-chat")
+async def profile_chat(request: ProfileChatRequest):
+    """Dedicated route for guiding the user through profile completion."""
+    profile_data = load_user_profile()
 
+    # ✅ Construct profile-based prompt
+    full_prompt = f"""
+    **USER PROFILE DETAILS:**
+    {json.dumps(profile_data, indent=2)}
+
+    **USER MESSAGE:**
+    {request.message}
+
+    **TASK:**
+    1. Identify missing fields in the user's profile.
+    2. Ask a relevant question to collect missing data.
+    3. If the profile is complete, ask about training goals.
+    """
+
+    response = query_openai_model(full_prompt)
+
+    return {
+        "assistant_response": response,
+        "profile_data": profile_data
+    }
 
 
 # ✅ Include artifact and contextual chat routers
