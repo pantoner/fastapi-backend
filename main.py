@@ -86,12 +86,6 @@ import json
 
 # ✅ Load OpenAI API Key
 
-conditional_responses = {
-    "Running": "Ok good! Tell me how many miles did you run last week?",
-    "Nutrition": "Great! Tell me how have you been eating lately?",
-    "Mindset": "Ok good! How have you been feeling?"
-}
-
 openai.api_key = OPENAI_API_KEY
 
 def categorize_message(message: str):
@@ -144,60 +138,67 @@ def query_openai_model(prompt):
 # ✅ API Route: Chat with OpenAI GPT-4
 @app.post("/chat")
 async def chat_with_gpt(chat_request: ChatRequest):
-    # ✅ Load user profile
+    # Load user profile
     user_profile = load_user_profile()
     profile_text = json.dumps(user_profile, indent=2)
 
-    # ✅ Load chat history
+    # Load chat history
     chat_history = load_chat_history()
     corrected_message = correct_spelling(chat_request.message)
     mood = detect_user_mood(corrected_message)
 
-    # ✅ Step 1: Classify User Message
-    category = categorize_message(chat_request.message)
+    # Retrieve relevant knowledge from FAISS
+    retrieved_contexts = search_faiss(corrected_message, top_k=3)
+    retrieved_text = "\n".join(retrieved_contexts) if retrieved_contexts else "No relevant data found."
 
-    # ✅ Step 2: Use Predefined Conditional Responses
-    if category in conditional_responses:
-        response = conditional_responses[category]
-    else:
-        # ✅ Retrieve relevant knowledge from FAISS
-        retrieved_contexts = search_faiss(corrected_message, top_k=3)
-        retrieved_text = "\n".join(retrieved_contexts) if retrieved_contexts else "No relevant data found."
+    # Format chat history for LLM
+    formatted_history = "\n".join(
+        [f"You: {entry['user']}\nGPT: {entry['bot']}" for entry in chat_history]
+    )
 
-        # ✅ Format chat history for LLM
-        formatted_history = "\n".join(
-            [f"You: {entry['user']}\nGPT: {entry['bot']}" for entry in chat_history]
-        )
+    # Construct full chat prompt
+    full_prompt = f"""
+    **ROLE & OBJECTIVE:**
+    You are a collaborative running coach who provides brief, engaging responses. Keep answers under 50 words and always end with a follow-up question. Do not provide lists or detailed breakdowns; instead, engage the user about their preferences.
 
-        # ✅ Construct full chat prompt
-        full_prompt = (
-            "**ROLE & OBJECTIVE:**\n"
-            "You are a **collaborative running coach** who provides **brief, engaging responses**. "
-            "You **MUST keep answers under 50 words** and **ALWAYS end with a follow-up question**. "
-            "DO NOT give lists or detailed breakdowns. Instead, ask the user about their preferences.\n\n"
+    **USER PROFILE:**
+    {profile_text}
 
-            f"**USER PROFILE:**\n{profile_text}\n\n"
+    **PREVIOUS CONVERSATION (Context):**
+    {formatted_history}
 
-            "**PREVIOUS CONVERSATION (Context):**\n"
-            f"{formatted_history}\n\n"
+    **RETRIEVED KNOWLEDGE:**
+    {retrieved_text}
 
-            "**RETRIEVED KNOWLEDGE:**\n"
-            f"{retrieved_text}\n\n"
+    **CURRENT USER MESSAGE:**
+    {corrected_message}
 
-            f"**CURRENT USER MESSAGE:**\n{corrected_message}\n\n"
+    **TASK:**
+    1. Determine the category of the user's message: Running, Nutrition, or Mindset.
+    2. Based on the identified category and the provided context, generate a response that aligns with the user's journey.
 
-            "**COACH RESPONSE:**\n"
-            "You MUST keep your response **under 50 words** and **always ask a follow-up question to ask if the runner feels good with the recommendation**."
-        )
+    **RESPONSE FORMAT:**
+    Category: [Identified Category]
+    Response: [Your response here]
+    """
 
-        # ✅ Call OpenAI GPT-4 API
-        response = query_openai_model(full_prompt)
+    # Call OpenAI GPT-4 API
+    response = query_openai_model(full_prompt)
 
-    # ✅ Save chat history
-    chat_history.append({"user": chat_request.message, "bot": response})
+    # Parse the response to extract category and message
+    try:
+        category_line, bot_response = response.split('\n', 1)
+        category = category_line.replace('Category:', '').strip()
+    except ValueError:
+        category = "Unknown"
+        bot_response = response
+
+    # Save chat history
+    chat_history.append({"user": chat_request.message, "bot": bot_response})
     save_chat_history(chat_history)
 
-    return {"response": response, "history": chat_history}
+    return {"category": category, "response": bot_response, "history": chat_history}
+
 
 
 
