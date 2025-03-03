@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 from datetime import date
 from db import get_user_profile, save_user_profile, get_user_by_email
-from main import ChatRequest
+from models import ChatRequest, UserProfileUpdate
 
 # Import authentication functions from auth_router
 from .auth import get_current_user

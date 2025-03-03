@@ -9,6 +9,7 @@ from faiss_helper import search_faiss
 from routes.tts import router as tts_router
 from routes.auth import auth_router
 from routes.profile_router import profile_router
+from models import ChatRequest
 from db import init_db, seed_db
 import openai  # ✅ Import OpenAI
 import json
