@@ -8,6 +8,8 @@ from ai_helpers import correct_spelling, detect_user_mood, get_llm_response, loa
 from faiss_helper import search_faiss
 from routes.tts import router as tts_router
 from routes.auth import auth_router
+from routes.profile_router import profile_router
+from db import init_db, seed_db
 import openai  # ✅ Import OpenAI
 import json
 import os
@@ -117,11 +119,21 @@ def query_openai_model(prompt):
         return "Error: Unable to get response."
 
 
+# Make sure you have a startup event to initialize the database
+@app.on_event("startup")
+async def app_startup():
+    """Initialize the database on application startup."""
+    print("🚀 Starting FastAPI Server")
+    init_db()
+    seed_db()
+
+
 # ✅ API Route: Chat with OpenAI GPT-4
 @app.post("/chat")
 async def chat_with_gpt(chat_request: ChatRequest):
     # Load user profile
-    user_profile = load_user_profile()
+    user = get_user_by_email(current_user)
+    user_profile = get_user_profile(user['id']) if user else {}
     profile_text = json.dumps(user_profile, indent=2)
 
     # Load chat history
@@ -181,61 +193,6 @@ async def chat_with_gpt(chat_request: ChatRequest):
 
     return {"category": category, "response": bot_response, "history": chat_history}
 
-# ✅ API Route: Profile Chat
-@app.post("/profile-chat")
-async def profile_chat(request: ChatRequest):
-    """
-    Dedicated route for guiding the user through profile completion.
-    The model is strictly limited to the known profile fields and asked to confirm or update them.
-    """
-    profile_data = load_user_profile()
-
-    # Enumerate the valid fields in the user profile
-    system_prompt = """
-    You have access to a user profile with these fields only:
-    - name
-    - age
-    - weekly_mileage
-    - race_type
-    - best_time
-    - best_time_date
-    - last_time
-    - last_time_date
-    - target_race
-    - target_time
-    - injury_history (list)
-    - nutrition (list)
-    - last_check_in
-
-    Your goal is to confirm or update these fields by asking the user if the values in the profile are still accurate.
-    If a field is missing or changed, ask the user for the correct information.
-    Do not introduce new fields or topics outside this profile.
-    Always keep your responses under 50 words and end with a follow-up question.
-    """
-
-    # Construct the final prompt, embedding the system prompt plus user profile and message
-    full_prompt = f"""
-    {system_prompt}
-
-    **USER PROFILE DETAILS:**
-    {json.dumps(profile_data, indent=2)}
-
-    **USER MESSAGE:**
-    {request.message}
-
-    **TASK:**
-    1. Identify missing or outdated fields in the user's profile.
-    2. Ask short questions to confirm or update them.
-    3. If the profile is complete, ask about training goals.
-    """
-
-    response = query_openai_model(full_prompt)
-
-    return {
-        "assistant_response": response,
-        "profile_data": profile_data
-    }
-
 
 
 # ✅ Include artifact and contextual chat routers
@@ -243,6 +200,7 @@ app.include_router(artifact_router)
 app.include_router(contextual_chat_router)  # ✅ Register contextual chat endpoint
 app.include_router(tts_router)  # ✅ Register TTS streaming endpoint
 app.include_router(auth_router, prefix="/auth")  # ✅ Register auth_router with prefix
+app.include_router(profile_router, prefix="/profile", tags=["Profile"])
 
 
 # ✅ Start the FastAPI server when running the script directly

@@ -4,7 +4,12 @@ services:
     env: python
     buildCommand: pip install -r requirements.txt
     startCommand: |
-      curl -L -o user_db.duckdb "https://www.dropbox.com/scl/fi/pteg2bowzw4hm4yallflu/user_db.duckdb?rlkey=ih8a1p3eax714amnwkxazuczk&st=rym6vbdi&dl=1"
+      # Remove any WAL files first
       rm -f user_db.duckdb.wal
+      # Check if database exists
+      if [ ! -f user_db.duckdb ] || [ ! -s user_db.duckdb ]; then
+        echo "Downloading database..."
+        curl -L -o user_db.duckdb "https://www.dropbox.com/scl/fi/pteg2bowzw4hm4yallflu/user_db.duckdb?rlkey=ih8a1p3eax714amnwkxazuczk&st=rym6vbdi&dl=1"
+      fi
+      # Start the server
       uvicorn main:app --host 0.0.0.0 --port 8000
-

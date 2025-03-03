@@ -40,11 +40,15 @@ def get_current_user(authorization: str = Header(None)):
     return decode_jwt_token(token)
 
 def get_user_by_email(email: str):
-    conn = duckdb.connect(USER_DB_FILE)
-    conn.execute("PRAGMA disable_checkpoint_on_shutdown;")  # Place it here
-    result = conn.execute("SELECT email, password FROM users WHERE email = ?", [email]).fetchone()
-    conn.close()
-    return {"email": result[0], "password": result[1]} if result else None
+    try:
+        # Use read_only=True for queries to avoid locking issues
+        conn = duckdb.connect(USER_DB_FILE, read_only=True)
+        result = conn.execute("SELECT email, password FROM users WHERE email = ?", [email]).fetchone()
+        conn.close()
+        return {"email": result[0], "password": result[1]} if result else None
+    except Exception as e:
+        print(f"Database error in get_user_by_email: {str(e)}")
+        return None
 
 def create_user(name: str, email: str, password: str):
     conn = duckdb.connect(USER_DB_FILE)
@@ -78,13 +82,41 @@ def get_user_details(current_user: str = Depends(get_current_user)):
 @auth_router.on_event("startup")
 async def startup_event():
     import requests
+    import os
     from config import USER_DB_FILE
-
-    url = "https://www.dropbox.com/scl/fi/pteg2bowzw4hm4yallflu/user_db.duckdb?rlkey=ih8a1p3eax714amnwkxazuczk&st=rym6vbdi&dl=1"
     
-    response = requests.get(url)
-
-    with open(USER_DB_FILE, 'wb') as f:
-        f.write(response.content)
-
-    print("✅ user_db.duckdb successfully downloaded and ready.")
+    # Remove any existing WAL files
+    if os.path.exists(f"{USER_DB_FILE}.wal"):
+        os.remove(f"{USER_DB_FILE}.wal")
+    
+    # Only download if file doesn't exist or is empty
+    if not os.path.exists(USER_DB_FILE) or os.path.getsize(USER_DB_FILE) == 0:
+        url = "https://www.dropbox.com/scl/fi/pteg2bowzw4hm4yallflu/user_db.duckdb?rlkey=ih8a1p3eax714amnwkxazuczk&st=rym6vbdi&dl=1"
+        
+        try:
+            response = requests.get(url)
+            with open(USER_DB_FILE, 'wb') as f:
+                f.write(response.content)
+            print("✅ user_db.duckdb successfully downloaded.")
+        except Exception as e:
+            print(f"❌ Database download error: {str(e)}")
+    
+    # Verify database integrity
+    try:
+        conn = duckdb.connect(USER_DB_FILE, read_only=True)
+        conn.execute("SELECT 1").fetchone()
+        conn.close()
+        print("✅ Database connection verified.")
+    except Exception as e:
+        print(f"❌ Database verification error: {str(e)}")
+        # Create new database if verification failed
+        try:
+            if os.path.exists(USER_DB_FILE):
+                os.remove(USER_DB_FILE)
+            conn = duckdb.connect(USER_DB_FILE)
+            conn.execute("CREATE TABLE IF NOT EXISTS users (name VARCHAR, email VARCHAR PRIMARY KEY, password VARCHAR)")
+            conn.execute("INSERT INTO users VALUES ('test@example.com', 'plaintextpassword')")
+            conn.close()
+            print("✅ Created new users database with test user.")
+        except Exception as e2:
+            print(f"❌ Failed to create new database: {str(e2)}")
