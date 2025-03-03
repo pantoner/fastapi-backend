@@ -7,7 +7,7 @@ from routes.contextual_chat import router as contextual_chat_router  # ✅ Impor
 from ai_helpers import correct_spelling, detect_user_mood, get_llm_response, load_chat_history, save_chat_history
 from faiss_helper import search_faiss
 from routes.tts import router as tts_router
-from auth import auth_router  # ✅ Import auth_router
+from routes.auth import auth_router
 import openai  # ✅ Import OpenAI
 import json
 import os
