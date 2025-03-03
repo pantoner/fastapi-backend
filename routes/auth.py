@@ -75,7 +75,7 @@ def login(user: UserLogin):
 def get_user_details(current_user: str = Depends(get_current_user)):
     return {"email": current_user}
 
-@app.on_event("startup")
+@auth_router.on_event("startup")
 async def startup_event():
     import requests
     from config import USER_DB_FILE
