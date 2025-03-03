@@ -1,7 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends, Header
 from pydantic import BaseModel
 import jwt
-import duckdb
 from datetime import datetime, timedelta
 from config import USER_DB_FILE, SECRET_KEY
 
