@@ -67,28 +67,32 @@ def register_user(user: UserRegister):
 
 @auth_router.post("/login")
 def login(user: UserLogin):
-    print(f"Login attempt for: {user.email}")
-    
-    # Try to get user from database
-    db_user = get_user_by_email(user.email)
-    print(f"Found user in DB: {db_user}")
-    
-    # If database lookup failed, check fallback users
-    if not db_user:
-        db_user = FALLBACK_USERS.get(user.email)
-        print(f"Using fallback user: {db_user}")
-    
-    if not db_user:
-        print(f"No user found for email: {user.email}")
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-    
-    print(f"Comparing passwords: '{user.password}' vs '{db_user['password']}'")
-    if db_user["password"] != user.password:
-        print(f"Password mismatch for: {user.email}")
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-    
-    token = create_jwt_token(user.email)
-    return {"access_token": token, "token_type": "Bearer"}
+    try:
+        print(f"Login attempt for: {user.email}")
+        
+        # Try to get user from database
+        db_user = get_user_by_email(user.email)
+        print(f"Found user in DB: {db_user}")
+        
+        if not db_user:
+            print(f"No user found for email: {user.email}")
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+        
+        print(f"Comparing passwords: '{user.password}' vs '{db_user.get('password')}'")
+        if db_user.get("password") != user.password:
+            print(f"Password mismatch for: {user.email}")
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+        
+        token = create_jwt_token(user.email)
+        print(f"Generated token for: {user.email}")
+        return {"access_token": token, "token_type": "Bearer"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Unexpected error in login: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 @auth_router.get("/me")
 def get_user_details(current_user: str = Depends(get_current_user)):

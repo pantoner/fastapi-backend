@@ -226,16 +226,26 @@ async def debug_db():
             "error_type": type(e).__name__
         }
 
-@app.get("/debug-users")
-def debug_users():
+
+@app.get("/debug-user/{email}")
+async def debug_user(email: str):
+    """Temporary endpoint to check if a user can be retrieved by email."""
     try:
-        with get_db_connection() as conn:
-            with conn.cursor() as cursor:
-                cursor.execute("SELECT email, password FROM users")
-                users = cursor.fetchall()
-                return {"users": users}
+        from db import get_user_by_email
+        
+        user = get_user_by_email(email)
+        
+        return {
+            "success": True,
+            "user_found": user is not None,
+            "user": user
+        }
     except Exception as e:
-        return {"error": str(e)}
+        return {
+            "success": False,
+            "error": str(e),
+            "error_type": type(e).__name__
+        }
 
 # ✅ Include artifact and contextual chat routers
 app.include_router(artifact_router)
