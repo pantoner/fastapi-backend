@@ -41,6 +41,7 @@ def get_current_user(authorization: str = Header(None)):
 
 def get_user_by_email(email: str):
     conn = duckdb.connect(USER_DB_FILE)
+    conn.execute("PRAGMA disable_checkpoint_on_shutdown;")  # Place it here
     result = conn.execute("SELECT email, password FROM users WHERE email = ?", [email]).fetchone()
     conn.close()
     return {"email": result[0], "password": result[1]} if result else None
@@ -73,3 +74,17 @@ def login(user: UserLogin):
 @auth_router.get("/me")
 def get_user_details(current_user: str = Depends(get_current_user)):
     return {"email": current_user}
+
+@app.on_event("startup")
+async def startup_event():
+    import requests
+    from config import USER_DB_FILE
+
+    url = "https://www.dropbox.com/scl/fi/pteg2bowzw4hm4yallflu/user_db.duckdb?rlkey=ih8a1p3eax714amnwkxazuczk&st=rym6vbdi&dl=1"
+    
+    response = requests.get(url)
+
+    with open(USER_DB_FILE, 'wb') as f:
+        f.write(response.content)
+
+    print("✅ user_db.duckdb successfully downloaded and ready.")
