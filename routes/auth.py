@@ -1,14 +1,12 @@
 from fastapi import APIRouter, HTTPException, Depends, Header
 from pydantic import BaseModel
-import json
-import os
-import jwt  # JWT for authentication
+import jwt
+import duckdb
 from datetime import datetime, timedelta
+from config import USER_DB_FILE, SECRET_KEY
 
 auth_router = APIRouter()
 
-USER_DATA_FILE = "users.json"
-SECRET_KEY = "your_secret_key_here"
 ALGORITHM = "HS256"
 TOKEN_EXPIRATION_MINUTES = 30
 
@@ -21,27 +19,12 @@ class UserLogin(BaseModel):
     email: str
     password: str
 
-def load_users():
-    """Load user data from JSON file."""
-    if not os.path.exists(USER_DATA_FILE):
-        return []
-    
-    with open(USER_DATA_FILE, "r") as file:
-        return json.load(file)
-
-def save_users(users):
-    """Save user data to JSON file."""
-    with open(USER_DATA_FILE, "w") as file:
-        json.dump(users, file, indent=4)
-
 def create_jwt_token(email: str):
-    """Generate a JWT token for authentication."""
     expiration = datetime.utcnow() + timedelta(minutes=TOKEN_EXPIRATION_MINUTES)
     payload = {"sub": email, "exp": expiration}
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
 def decode_jwt_token(token: str):
-    """Decode and verify a JWT token."""
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return payload["sub"]
@@ -51,37 +34,41 @@ def decode_jwt_token(token: str):
         raise HTTPException(status_code=401, detail="Invalid token")
 
 def get_current_user(authorization: str = Header(None)):
-    """Extract user from JWT token in Authorization header."""
     if authorization is None or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Invalid or missing token")
-    
     token = authorization.split("Bearer ")[1]
     return decode_jwt_token(token)
 
+def get_user_by_email(email: str):
+    conn = duckdb.connect(USER_DB_FILE)
+    result = conn.execute("SELECT email, password FROM users WHERE email = ?", [email]).fetchone()
+    conn.close()
+    return {"email": result[0], "password": result[1]} if result else None
+
+def create_user(name: str, email: str, password: str):
+    conn = duckdb.connect(USER_DB_FILE)
+    conn.execute(
+        "INSERT INTO users (name, email, password) VALUES (?, ?, ?)",
+        [name, email, password],
+    )
+    conn.close()
+
 @auth_router.post("/register")
 def register_user(user: UserRegister):
-    users = load_users()
-
-    for u in users:
-        if u["email"] == user.email:
-            raise HTTPException(status_code=400, detail="User already exists")
-
-    new_user = user.dict()
-    users.append(new_user)
-    save_users(users)
-
+    existing_user = get_user_by_email(user.email)
+    if existing_user:
+        raise HTTPException(status_code=400, detail="User already exists")
+    create_user(user.name, user.email, user.password)
     return {"message": "User registered successfully"}
 
 @auth_router.post("/login")
 def login(user: UserLogin):
-    users = load_users()
+    db_user = get_user_by_email(user.email)
+    if not db_user or db_user["password"] != user.password:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    for u in users:
-        if u["email"] == user.email and u["password"] == user.password:
-            token = create_jwt_token(user.email)
-            return {"access_token": token, "token_type": "Bearer"}
-
-    raise HTTPException(status_code=401, detail="Invalid credentials")
+    token = create_jwt_token(user.email)
+    return {"access_token": token, "token_type": "Bearer"}
 
 @auth_router.get("/me")
 def get_user_details(current_user: str = Depends(get_current_user)):

@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: fastapi-backend
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: |
+      curl -L -o user_db.duckdb "https://www.dropbox.com/scl/fi/4hm236kma7dh24t1yka6k/user_db.duckdb?rlkey=h6ai5hw53rqi0pvb4tl5msqjc&st=5bpqlhyb&dl=1"
+      uvicorn main:app --host 0.0.0.0 --port 8000
+

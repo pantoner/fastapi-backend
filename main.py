@@ -7,6 +7,7 @@ from routes.contextual_chat import router as contextual_chat_router  # ✅ Impor
 from ai_helpers import correct_spelling, detect_user_mood, get_llm_response, load_chat_history, save_chat_history
 from faiss_helper import search_faiss
 from routes.tts import router as tts_router
+from auth import auth_router  # ✅ Import auth_router
 import openai  # ✅ Import OpenAI
 import json
 import os
@@ -38,23 +39,12 @@ if not OPENAI_API_KEY:
 openai.api_key = OPENAI_API_KEY
 
 # ✅ Paths to JSON files
-USERS_FILE = "users.json"
-CHAT_HISTORY_FILE = "chat_history.json"
 
-# ✅ Pydantic Models
-class LoginRequest(BaseModel):
-    email: str
-    password: str
+CHAT_HISTORY_FILE = "chat_history.json"
 
 class ChatRequest(BaseModel):
     message: str
 
-# ✅ Function to Load Users from JSON File
-def load_users():
-    if not os.path.exists(USERS_FILE):
-        return []
-    with open(USERS_FILE, "r") as f:
-        return json.load(f)
 
 USER_PROFILE_FILE = "user_profile.json"
 
@@ -65,14 +55,6 @@ def load_user_profile():
     with open(USER_PROFILE_FILE, "r") as f:
         return json.load(f)
 
-# ✅ API Route: Login Endpoint
-@app.post("/auth/login")
-async def login(request: LoginRequest):
-    users = load_users()
-    for user in users:
-        if user["email"] == request.email and user["password"] == request.password:
-            return {"access_token": "mock-jwt-token", "token_type": "bearer"}
-    raise HTTPException(status_code=401, detail="Invalid email or password")
 
 # ✅ API Route: Retrieve Chat History
 @app.get("/chat-history")
@@ -260,6 +242,8 @@ async def profile_chat(request: ChatRequest):
 app.include_router(artifact_router)
 app.include_router(contextual_chat_router)  # ✅ Register contextual chat endpoint
 app.include_router(tts_router)  # ✅ Register TTS streaming endpoint
+app.include_router(auth_router, prefix="/auth")  # ✅ Register auth_router with prefix
+
 
 # ✅ Start the FastAPI server when running the script directly
 if __name__ == "__main__":
