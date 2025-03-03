@@ -67,10 +67,26 @@ def register_user(user: UserRegister):
 
 @auth_router.post("/login")
 def login(user: UserLogin):
+    print(f"Login attempt for: {user.email}")
+    
+    # Try to get user from database
     db_user = get_user_by_email(user.email)
-    if not db_user or db_user["password"] != user.password:
+    print(f"Found user in DB: {db_user}")
+    
+    # If database lookup failed, check fallback users
+    if not db_user:
+        db_user = FALLBACK_USERS.get(user.email)
+        print(f"Using fallback user: {db_user}")
+    
+    if not db_user:
+        print(f"No user found for email: {user.email}")
         raise HTTPException(status_code=401, detail="Invalid credentials")
-
+    
+    print(f"Comparing passwords: '{user.password}' vs '{db_user['password']}'")
+    if db_user["password"] != user.password:
+        print(f"Password mismatch for: {user.email}")
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    
     token = create_jwt_token(user.email)
     return {"access_token": token, "token_type": "Bearer"}
 

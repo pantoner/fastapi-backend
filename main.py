@@ -45,9 +45,6 @@ openai.api_key = OPENAI_API_KEY
 
 CHAT_HISTORY_FILE = "chat_history.json"
 
-class ChatRequest(BaseModel):
-    message: str
-
 
 USER_PROFILE_FILE = "user_profile.json"
 
@@ -194,7 +191,51 @@ async def chat_with_gpt(chat_request: ChatRequest):
 
     return {"category": category, "response": bot_response, "history": chat_history}
 
+@app.get("/debug-db")
+async def debug_db():
+    """Temporary endpoint to check database users."""
+    try:
+        from db import get_db_connection
+        
+        users = []
+        with get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT id, name, email, password FROM users")
+                for row in cursor.fetchall():
+                    users.append(dict(row))
+        
+        tables = []
+        with get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT table_name 
+                    FROM information_schema.tables 
+                    WHERE table_schema = 'public'
+                """)
+                tables = [row['table_name'] for row in cursor.fetchall()]
+        
+        return {
+            "success": True,
+            "tables": tables,
+            "users": users
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "error_type": type(e).__name__
+        }
 
+@app.get("/debug-users")
+def debug_users():
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT email, password FROM users")
+                users = cursor.fetchall()
+                return {"users": users}
+    except Exception as e:
+        return {"error": str(e)}
 
 # ✅ Include artifact and contextual chat routers
 app.include_router(artifact_router)
