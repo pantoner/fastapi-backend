@@ -84,55 +84,64 @@ async def profile_chat(request: ChatRequest, current_user: Optional[str] = None)
             profile_data = get_user_profile(user['id'])
         else:
             profile_data = {
-            "email": current_user,
-            "name": user.get('name', ''),
-            "injury_history": [],
-            "nutrition": []
+                "email": user_email,  # Changed from current_user since it might be None
+                "name": user.get('name', '') if user else '',
+                "injury_history": [],
+                "nutrition": []
+            }
+        
+        # Enumerate the valid fields in the user profile
+        system_prompt = """
+        You have access to a user profile with these fields only:
+        - name
+        - age
+        - weekly_mileage
+        - race_type
+        - best_time
+        - best_time_date
+        - last_time
+        - last_time_date
+        - target_race
+        - target_time
+        - injury_history (list)
+        - nutrition (list)
+        - last_check_in
+
+        Your goal is to confirm or update these fields by asking the user if the values in the profile are still accurate.
+        If a field is missing or changed, ask the user for the correct information.
+        Do not introduce new fields or topics outside this profile.
+        Always keep your responses under 50 words and end with a follow-up question.
+        """
+
+        # Construct the final prompt, embedding the system prompt plus user profile and message
+        full_prompt = f"""
+        {system_prompt}
+
+        **USER PROFILE DETAILS:**
+        {json.dumps(profile_data, indent=2)}
+
+        **USER MESSAGE:**
+        {request.message}
+
+        **TASK:**
+        1. Identify missing or outdated fields in the user's profile.
+        2. Ask short questions to confirm or update them.
+        3. If the profile is complete, ask about training goals.
+        """
+        
+        # You'll need to import the query_openai_model function from main.py
+        from main import query_openai_model
+        response = query_openai_model(full_prompt)
+        
+        return {
+            "assistant_response": response,
+            "profile_data": profile_data
         }
-    
-    # Enumerate the valid fields in the user profile
-    system_prompt = """
-    You have access to a user profile with these fields only:
-    - name
-    - age
-    - weekly_mileage
-    - race_type
-    - best_time
-    - best_time_date
-    - last_time
-    - last_time_date
-    - target_race
-    - target_time
-    - injury_history (list)
-    - nutrition (list)
-    - last_check_in
-
-    Your goal is to confirm or update these fields by asking the user if the values in the profile are still accurate.
-    If a field is missing or changed, ask the user for the correct information.
-    Do not introduce new fields or topics outside this profile.
-    Always keep your responses under 50 words and end with a follow-up question.
-    """
-
-    # Construct the final prompt, embedding the system prompt plus user profile and message
-    full_prompt = f"""
-    {system_prompt}
-
-    **USER PROFILE DETAILS:**
-    {json.dumps(profile_data, indent=2)}
-
-    **USER MESSAGE:**
-    {request.message}
-
-    **TASK:**
-    1. Identify missing or outdated fields in the user's profile.
-    2. Ask short questions to confirm or update them.
-    3. If the profile is complete, ask about training goals.
-    """
-
-    # You'll need to import the query_openai_model function or define it here
-    response = query_openai_model(full_prompt)
-
-    return {
-        "assistant_response": response,
-        "profile_data": profile_data
-    }
+    except Exception as e:
+        print(f"Error in profile_chat: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return {
+            "assistant_response": f"I'm sorry, I encountered an error while processing your profile: {str(e)}",
+            "profile_data": {}
+        }
