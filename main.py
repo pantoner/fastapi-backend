@@ -265,7 +265,7 @@ app.include_router(artifact_router)
 app.include_router(contextual_chat_router)  # ✅ Register contextual chat endpoint
 app.include_router(tts_router)  # ✅ Register TTS streaming endpoint
 app.include_router(auth_router, prefix="/auth")  # ✅ Register auth_router with prefix
-app.include_router(profile_router, prefix="/profile/", tags=["Profile"])
+app.include_router(profile_router, prefix="/profile", tags=["Profile"])
 
 
 # ✅ Start the FastAPI server when running the script directly

@@ -26,7 +26,7 @@ class UserProfileUpdate(BaseModel):
     nutrition: Optional[List[str]] = None
     last_check_in: Optional[date] = None
 
-@profile_router.get("profile")
+@profile_router.get("/profile")
 def get_profile(current_user: str = Depends(get_current_user)):
     """Get the current user's profile."""
     # Get user ID from email
@@ -47,7 +47,7 @@ def get_profile(current_user: str = Depends(get_current_user)):
     
     return profile
 
-@profile_router.put("profile")
+@profile_router.put("/profile")
 def update_profile(profile_data: UserProfileUpdate, current_user: str = Depends(get_current_user)):
     """Update the current user's profile."""
     # Get user ID from email
@@ -67,7 +67,7 @@ def update_profile(profile_data: UserProfileUpdate, current_user: str = Depends(
     updated_profile = get_user_profile(user['id'])
     return updated_profile
 
-@profile_router.post("profile-chat")
+@profile_router.post("/profile-chat")
 async def profile_chat(request: ChatRequest, current_user: Optional[str] = None):
     """
     Dedicated route for guiding the user through profile completion.
@@ -144,6 +144,6 @@ async def profile_chat(request: ChatRequest, current_user: Optional[str] = None)
             "profile_data": {}
         }
 
-@profile_router.get("test")
+@profile_router.get("/test")
 async def test_profile_router():
     return {"message": "Profile router is working"}
