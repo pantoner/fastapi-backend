@@ -5,6 +5,7 @@ from datetime import date
 # Basic request model
 class ChatRequest(BaseModel):
     message: str
+    email: Optional[str] = None  # Add this line
 
 # User profile model
 class UserProfileUpdate(BaseModel):

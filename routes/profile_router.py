@@ -4,12 +4,10 @@ from typing import List, Optional
 from datetime import date
 from db import get_user_profile, save_user_profile, get_user_by_email
 from models import ChatRequest, UserProfileUpdate
+import json
 
 # Import authentication functions from auth_router
 from .auth import get_current_user
-
-class ChatRequest(BaseModel):
-    message: str
 
 profile_router = APIRouter()
 
@@ -145,3 +143,7 @@ async def profile_chat(request: ChatRequest, current_user: Optional[str] = None)
             "assistant_response": f"I'm sorry, I encountered an error while processing your profile: {str(e)}",
             "profile_data": {}
         }
+
+@profile_router.get("test")
+async def test_profile_router():
+    return {"message": "Profile router is working"}
