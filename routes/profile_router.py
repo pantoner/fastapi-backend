@@ -28,7 +28,7 @@ class UserProfileUpdate(BaseModel):
     nutrition: Optional[List[str]] = None
     last_check_in: Optional[date] = None
 
-@profile_router.get("/profile")
+@profile_router.get("profile")
 def get_profile(current_user: str = Depends(get_current_user)):
     """Get the current user's profile."""
     # Get user ID from email
@@ -49,7 +49,7 @@ def get_profile(current_user: str = Depends(get_current_user)):
     
     return profile
 
-@profile_router.put("/profile")
+@profile_router.put("profile")
 def update_profile(profile_data: UserProfileUpdate, current_user: str = Depends(get_current_user)):
     """Update the current user's profile."""
     # Get user ID from email
@@ -69,21 +69,21 @@ def update_profile(profile_data: UserProfileUpdate, current_user: str = Depends(
     updated_profile = get_user_profile(user['id'])
     return updated_profile
 
-@profile_router.post("/profile-chat")
-async def profile_chat(request: ChatRequest, current_user: str = Depends(get_current_user)):
+@profile_router.post("profile-chat")
+async def profile_chat(request: ChatRequest, current_user: Optional[str] = None):
     """
     Dedicated route for guiding the user through profile completion.
-    The model is strictly limited to the known profile fields and asked to confirm or update them.
     """
-    # Get user ID from email
-    user = get_user_by_email(current_user)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    
-    # Get the user's profile from the database
-    profile_data = get_user_profile(user['id'])
-    if not profile_data:
-        profile_data = {
+    try:
+        # Get user from request or use current_user if authenticated
+        user_email = request.email if hasattr(request, 'email') else "test@example.com"
+        
+        # Get user profile
+        user = get_user_by_email(user_email)
+        if user:
+            profile_data = get_user_profile(user['id'])
+        else:
+            profile_data = {
             "email": current_user,
             "name": user.get('name', ''),
             "injury_history": [],

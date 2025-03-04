@@ -10,7 +10,7 @@ from routes.tts import router as tts_router
 from routes.auth import auth_router
 from routes.profile_router import profile_router
 from models import ChatRequest
-from db import init_db, seed_db
+from db import init_db, seed_db, get_user_by_email
 import openai  # ✅ Import OpenAI
 import json
 import os
@@ -129,12 +129,25 @@ async def app_startup():
 # ✅ API Route: Chat with OpenAI GPT-4
 @app.post("/chat")
 async def chat_with_gpt(chat_request: ChatRequest):
-    # Load user profile
-    user = get_user_by_email(current_user)
-    user_profile = get_user_profile(user['id']) if user else {}
+    # Try to get user profile from database or use a default one
+    try:
+        # This needs to change when you add authentication to chat
+        user_email = "test@example.com"  # Hardcoded for now
+        user = get_user_by_email(user_email)
+        if user:
+            user_id = user.get('id')
+            from db import get_user_profile
+            user_profile = get_user_profile(user_id) or {}
+        else:
+            # Fallback to file if needed during transition
+            user_profile = load_user_profile()
+    except Exception as e:
+        print(f"Error loading user profile: {str(e)}")
+        user_profile = load_user_profile()  # Fallback to file
+    
     profile_text = json.dumps(user_profile, indent=2)
-
-    # Load chat history
+    
+    # The rest of your function remains the same
     chat_history = load_chat_history()
     corrected_message = correct_spelling(chat_request.message)
     mood = detect_user_mood(corrected_message)
