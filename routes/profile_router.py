@@ -134,7 +134,7 @@ async def profile_chat(request: ChatRequest, current_user: Optional[str] = None)
         response = query_openai_model(full_prompt)
         
         return {
-            "assistant_response": response,
+            "response": response,
             "profile_data": profile_data
         }
     except Exception as e:
