@@ -1,16 +1,22 @@
 from fastapi import APIRouter, HTTPException, Depends, Header
 from pydantic import BaseModel
-import json
-import os
-import jwt  # JWT for authentication
+import jwt
 from datetime import datetime, timedelta
+from config import SECRET_KEY
+from db import get_user_by_email, create_user
 
 auth_router = APIRouter()
 
-USER_DATA_FILE = "users.json"
-SECRET_KEY = "your_secret_key_here"
 ALGORITHM = "HS256"
 TOKEN_EXPIRATION_MINUTES = 30
+
+# Fallback users in case database connection fails
+FALLBACK_USERS = {
+    "test@example.com": {"email": "test@example.com", "password": "plaintextpassword"},
+    "secure@example.com": {"email": "secure@example.com", "password": "mypassword"},
+    "final@example.com": {"email": "final@example.com", "password": "finalpassword"},
+    "john@example.com": {"email": "john@example.com", "password": "password123"}
+}
 
 class UserRegister(BaseModel):
     name: str
@@ -21,27 +27,12 @@ class UserLogin(BaseModel):
     email: str
     password: str
 
-def load_users():
-    """Load user data from JSON file."""
-    if not os.path.exists(USER_DATA_FILE):
-        return []
-    
-    with open(USER_DATA_FILE, "r") as file:
-        return json.load(file)
-
-def save_users(users):
-    """Save user data to JSON file."""
-    with open(USER_DATA_FILE, "w") as file:
-        json.dump(users, file, indent=4)
-
 def create_jwt_token(email: str):
-    """Generate a JWT token for authentication."""
     expiration = datetime.utcnow() + timedelta(minutes=TOKEN_EXPIRATION_MINUTES)
     payload = {"sub": email, "exp": expiration}
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
 def decode_jwt_token(token: str):
-    """Decode and verify a JWT token."""
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return payload["sub"]
@@ -51,37 +42,54 @@ def decode_jwt_token(token: str):
         raise HTTPException(status_code=401, detail="Invalid token")
 
 def get_current_user(authorization: str = Header(None)):
-    """Extract user from JWT token in Authorization header."""
     if authorization is None or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Invalid or missing token")
-    
     token = authorization.split("Bearer ")[1]
     return decode_jwt_token(token)
 
 @auth_router.post("/register")
 def register_user(user: UserRegister):
-    users = load_users()
-
-    for u in users:
-        if u["email"] == user.email:
-            raise HTTPException(status_code=400, detail="User already exists")
-
-    new_user = user.dict()
-    users.append(new_user)
-    save_users(users)
-
+    existing_user = get_user_by_email(user.email)
+    if existing_user:
+        raise HTTPException(status_code=400, detail="User already exists")
+    user_id = create_user(user.name, user.email, user.password)
+    if not user_id:
+        raise HTTPException(status_code=500, detail="Failed to register user")
     return {"message": "User registered successfully"}
 
 @auth_router.post("/login")
 def login(user: UserLogin):
-    users = load_users()
-
-    for u in users:
-        if u["email"] == user.email and u["password"] == user.password:
-            token = create_jwt_token(user.email)
-            return {"access_token": token, "token_type": "Bearer"}
-
-    raise HTTPException(status_code=401, detail="Invalid credentials")
+    try:
+        print(f"Login attempt for: {user.email}")
+        
+        # Try to get user from database
+        db_user = get_user_by_email(user.email)
+        print(f"Found user in DB: {db_user}")
+        
+        # If database lookup failed, check fallback users
+        if not db_user:
+            db_user = FALLBACK_USERS.get(user.email)
+            print(f"Using fallback user: {db_user}")
+        
+        if not db_user:
+            print(f"No user found for email: {user.email}")
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+        
+        print(f"Comparing passwords: '{user.password}' vs '{db_user.get('password')}'")
+        if db_user.get("password") != user.password:
+            print(f"Password mismatch for: {user.email}")
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+        
+        token = create_jwt_token(user.email)
+        print(f"Generated token for: {user.email}")
+        return {"access_token": token, "token_type": "Bearer"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Unexpected error in login: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 @auth_router.get("/me")
 def get_user_details(current_user: str = Depends(get_current_user)):

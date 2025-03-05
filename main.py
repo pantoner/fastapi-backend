@@ -7,6 +7,10 @@ from routes.contextual_chat import router as contextual_chat_router  # ✅ Impor
 from ai_helpers import correct_spelling, detect_user_mood, get_llm_response, load_chat_history, save_chat_history
 from faiss_helper import search_faiss
 from routes.tts import router as tts_router
+from routes.auth import auth_router
+from routes.profile_router import profile_router
+from models import ChatRequest
+from db import init_db, seed_db, get_user_by_email
 import openai  # ✅ Import OpenAI
 import json
 import os
@@ -38,23 +42,9 @@ if not OPENAI_API_KEY:
 openai.api_key = OPENAI_API_KEY
 
 # ✅ Paths to JSON files
-USERS_FILE = "users.json"
+
 CHAT_HISTORY_FILE = "chat_history.json"
 
-# ✅ Pydantic Models
-class LoginRequest(BaseModel):
-    email: str
-    password: str
-
-class ChatRequest(BaseModel):
-    message: str
-
-# ✅ Function to Load Users from JSON File
-def load_users():
-    if not os.path.exists(USERS_FILE):
-        return []
-    with open(USERS_FILE, "r") as f:
-        return json.load(f)
 
 USER_PROFILE_FILE = "user_profile.json"
 
@@ -65,14 +55,6 @@ def load_user_profile():
     with open(USER_PROFILE_FILE, "r") as f:
         return json.load(f)
 
-# ✅ API Route: Login Endpoint
-@app.post("/auth/login")
-async def login(request: LoginRequest):
-    users = load_users()
-    for user in users:
-        if user["email"] == request.email and user["password"] == request.password:
-            return {"access_token": "mock-jwt-token", "token_type": "bearer"}
-    raise HTTPException(status_code=401, detail="Invalid email or password")
 
 # ✅ API Route: Retrieve Chat History
 @app.get("/chat-history")
@@ -135,14 +117,37 @@ def query_openai_model(prompt):
         return "Error: Unable to get response."
 
 
+# Make sure you have a startup event to initialize the database
+@app.on_event("startup")
+async def app_startup():
+    """Initialize the database on application startup."""
+    print("🚀 Starting FastAPI Server")
+    init_db()
+    seed_db()
+
+
 # ✅ API Route: Chat with OpenAI GPT-4
 @app.post("/chat")
 async def chat_with_gpt(chat_request: ChatRequest):
-    # Load user profile
-    user_profile = load_user_profile()
+    # Try to get user profile from database or use a default one
+    try:
+        # This needs to change when you add authentication to chat
+        user_email = "test@example.com"  # Hardcoded for now
+        user = get_user_by_email(user_email)
+        if user:
+            user_id = user.get('id')
+            from db import get_user_profile
+            user_profile = get_user_profile(user_id) or {}
+        else:
+            # Fallback to file if needed during transition
+            user_profile = load_user_profile()
+    except Exception as e:
+        print(f"Error loading user profile: {str(e)}")
+        user_profile = load_user_profile()  # Fallback to file
+    
     profile_text = json.dumps(user_profile, indent=2)
-
-    # Load chat history
+    
+    # The rest of your function remains the same
     chat_history = load_chat_history()
     corrected_message = correct_spelling(chat_request.message)
     mood = detect_user_mood(corrected_message)
@@ -199,67 +204,69 @@ async def chat_with_gpt(chat_request: ChatRequest):
 
     return {"category": category, "response": bot_response, "history": chat_history}
 
-# ✅ API Route: Profile Chat
-@app.post("/profile-chat")
-async def profile_chat(request: ChatRequest):
-    """
-    Dedicated route for guiding the user through profile completion.
-    The model is strictly limited to the known profile fields and asked to confirm or update them.
-    """
-    profile_data = load_user_profile()
-
-    # Enumerate the valid fields in the user profile
-    system_prompt = """
-    You have access to a user profile with these fields only:
-    - name
-    - age
-    - weekly_mileage
-    - race_type
-    - best_time
-    - best_time_date
-    - last_time
-    - last_time_date
-    - target_race
-    - target_time
-    - injury_history (list)
-    - nutrition (list)
-    - last_check_in
-
-    Your goal is to confirm or update these fields by asking the user if the values in the profile are still accurate.
-    If a field is missing or changed, ask the user for the correct information.
-    Do not introduce new fields or topics outside this profile.
-    Always keep your responses under 50 words and end with a follow-up question.
-    """
-
-    # Construct the final prompt, embedding the system prompt plus user profile and message
-    full_prompt = f"""
-    {system_prompt}
-
-    **USER PROFILE DETAILS:**
-    {json.dumps(profile_data, indent=2)}
-
-    **USER MESSAGE:**
-    {request.message}
-
-    **TASK:**
-    1. Identify missing or outdated fields in the user's profile.
-    2. Ask short questions to confirm or update them.
-    3. If the profile is complete, ask about training goals.
-    """
-
-    response = query_openai_model(full_prompt)
-
-    return {
-        "assistant_response": response,
-        "profile_data": profile_data
-    }
+@app.get("/debug-db")
+async def debug_db():
+    """Temporary endpoint to check database users."""
+    try:
+        from db import get_db_connection
+        
+        users = []
+        with get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT id, name, email, password FROM users")
+                for row in cursor.fetchall():
+                    users.append(dict(row))
+        
+        tables = []
+        with get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT table_name 
+                    FROM information_schema.tables 
+                    WHERE table_schema = 'public'
+                """)
+                tables = [row['table_name'] for row in cursor.fetchall()]
+        
+        return {
+            "success": True,
+            "tables": tables,
+            "users": users
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "error_type": type(e).__name__
+        }
 
 
+@app.get("/debug-user/{email}")
+async def debug_user(email: str):
+    """Temporary endpoint to check if a user can be retrieved by email."""
+    try:
+        from db import get_user_by_email
+        
+        user = get_user_by_email(email)
+        
+        return {
+            "success": True,
+            "user_found": user is not None,
+            "user": user
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "error_type": type(e).__name__
+        }
 
 # ✅ Include artifact and contextual chat routers
 app.include_router(artifact_router)
 app.include_router(contextual_chat_router)  # ✅ Register contextual chat endpoint
 app.include_router(tts_router)  # ✅ Register TTS streaming endpoint
+app.include_router(auth_router, prefix="/auth")  # ✅ Register auth_router with prefix
+app.include_router(profile_router, prefix="/profile", tags=["Profile"])
+
 
 # ✅ Start the FastAPI server when running the script directly
 if __name__ == "__main__":
