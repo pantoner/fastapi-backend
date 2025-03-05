@@ -128,24 +128,25 @@ async def app_startup():
 
 # ✅ API Route: Chat with OpenAI GPT-4
 @app.post("/chat")
-async def chat_with_gpt(chat_request: ChatRequest):
-    # Try to get user profile from database or use a default one
-    try:
-        # This needs to change when you add authentication to chat
-        user_email = "test@example.com"  # Hardcoded for now
-        user = get_user_by_email(user_email)
-        if user:
-            user_id = user.get('id')
-            from db import get_user_profile
-            user_profile = get_user_profile(user_id) or {}
-        else:
-            # Fallback to file if needed during transition
-            user_profile = load_user_profile()
-    except Exception as e:
-        print(f"Error loading user profile: {str(e)}")
-        user_profile = load_user_profile()  # Fallback to file
+async def chat_with_gpt(chat_request: ChatRequest, current_user: str = Depends(get_current_user)):
+    # Get user by email (from JWT token)
+    user = get_user_by_email(current_user)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
     
+    # Get user profile from database
+    user_profile = get_user_profile(user['id'])
+    if not user_profile:
+        # Create default profile if none exists
+        user_profile = {
+            "email": current_user,
+            "name": user.get('name', ''),
+            "injury_history": [],
+            "nutrition": []
+        }
     profile_text = json.dumps(user_profile, indent=2)
+    
+    # Rest of the function...
     
     # The rest of your function remains the same
     chat_history = load_chat_history()
