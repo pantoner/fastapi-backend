@@ -89,7 +89,7 @@ async def profile_chat(request: ChatRequest, current_user: str = Depends(get_cur
                 "nutrition": []
             }
         # Get user's name from profile or use email as fallback
-        user_name = user_profile.get("name", "") or current_user.split("@")[0]
+        user_name = profile_data.get("name", "") or current_user.split("@")[0]
         # Enumerate the valid fields in the user profile
         system_prompt = """
         You are speaking with {user_name}. Always greet them by name in your first response.
