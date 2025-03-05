@@ -68,7 +68,8 @@ def update_profile(profile_data: UserProfileUpdate, current_user: str = Depends(
     return updated_profile
 
 @profile_router.post("/profile-chat")
-async def profile_chat(request: ChatRequest, current_user: Optional[str] = None):
+async def profile_chat(request: ChatRequest, current_user: str = Depends(get_current_user)):
+
     """
     Dedicated route for guiding the user through profile completion.
     """
