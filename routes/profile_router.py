@@ -68,28 +68,31 @@ def update_profile(profile_data: UserProfileUpdate, current_user: str = Depends(
     return updated_profile
 
 @profile_router.post("/profile-chat")
-async def profile_chat(request: ChatRequest, current_user: Optional[str] = None):
+async def profile_chat(request: ChatRequest, current_user: str = Depends(get_current_user)):
     """
     Dedicated route for guiding the user through profile completion.
     """
     try:
-        # Get user from request or use current_user if authenticated
-        user_email = request.email if hasattr(request, 'email') else "test@example.com"
+        # Get user profile using the authenticated user's email
+        user = get_user_by_email(current_user)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
         
-        # Get user profile
-        user = get_user_by_email(user_email)
-        if user:
-            profile_data = get_user_profile(user['id'])
-        else:
+        # Get user profile from database
+        profile_data = get_user_profile(user['id'])
+        if not profile_data:
+            # Create default profile if none exists
             profile_data = {
-                "email": user_email,  # Changed from current_user since it might be None
-                "name": user.get('name', '') if user else '',
+                "email": current_user,
+                "name": user.get('name', ''),
                 "injury_history": [],
                 "nutrition": []
             }
-        
+        # Get user's name from profile or use email as fallback
+        user_name = profile_data.get("name", "") or current_user.split("@")[0]
         # Enumerate the valid fields in the user profile
-        system_prompt = """
+        system_prompt = f"""
+        You are speaking with {user_name}. Always greet them by name in your first response.
         You have access to a user profile with these fields only:
         - name
         - age

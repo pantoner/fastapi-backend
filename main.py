@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from routes.artifact import router as artifact_router
@@ -7,10 +7,10 @@ from routes.contextual_chat import router as contextual_chat_router  # ✅ Impor
 from ai_helpers import correct_spelling, detect_user_mood, get_llm_response, load_chat_history, save_chat_history
 from faiss_helper import search_faiss
 from routes.tts import router as tts_router
-from routes.auth import auth_router
+from routes.auth import auth_router, get_current_user
 from routes.profile_router import profile_router
 from models import ChatRequest
-from db import init_db, seed_db, get_user_by_email
+from db import init_db, seed_db, get_user_by_email, get_user_profile
 import openai  # ✅ Import OpenAI
 import json
 import os
@@ -128,24 +128,25 @@ async def app_startup():
 
 # ✅ API Route: Chat with OpenAI GPT-4
 @app.post("/chat")
-async def chat_with_gpt(chat_request: ChatRequest):
-    # Try to get user profile from database or use a default one
-    try:
-        # This needs to change when you add authentication to chat
-        user_email = "test@example.com"  # Hardcoded for now
-        user = get_user_by_email(user_email)
-        if user:
-            user_id = user.get('id')
-            from db import get_user_profile
-            user_profile = get_user_profile(user_id) or {}
-        else:
-            # Fallback to file if needed during transition
-            user_profile = load_user_profile()
-    except Exception as e:
-        print(f"Error loading user profile: {str(e)}")
-        user_profile = load_user_profile()  # Fallback to file
+async def chat_with_gpt(chat_request: ChatRequest, current_user: str = Depends(get_current_user)):
+    # Get user by email (from JWT token)
+    user = get_user_by_email(current_user)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
     
+    # Get user profile from database
+    user_profile = get_user_profile(user['id'])
+    if not user_profile:
+        # Create default profile if none exists
+        user_profile = {
+            "email": current_user,
+            "name": user.get('name', ''),
+            "injury_history": [],
+            "nutrition": []
+        }
     profile_text = json.dumps(user_profile, indent=2)
+    
+    # Rest of the function...
     
     # The rest of your function remains the same
     chat_history = load_chat_history()
