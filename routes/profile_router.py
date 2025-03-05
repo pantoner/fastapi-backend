@@ -87,9 +87,11 @@ async def profile_chat(request: ChatRequest, current_user: Optional[str] = None)
                 "injury_history": [],
                 "nutrition": []
             }
-        
+        # Get user's name from profile or use email as fallback
+        user_name = user_profile.get("name", "") or current_user.split("@")[0]
         # Enumerate the valid fields in the user profile
         system_prompt = """
+        You are speaking with {user_name}. Always greet them by name in your first response.
         You have access to a user profile with these fields only:
         - name
         - age
