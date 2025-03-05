@@ -7,10 +7,10 @@ from routes.contextual_chat import router as contextual_chat_router  # ✅ Impor
 from ai_helpers import correct_spelling, detect_user_mood, get_llm_response, load_chat_history, save_chat_history
 from faiss_helper import search_faiss
 from routes.tts import router as tts_router
-from routes.auth import auth_router
+from routes.auth import auth_router, get_current_user
 from routes.profile_router import profile_router
 from models import ChatRequest
-from db import init_db, seed_db, get_user_by_email
+from db import init_db, seed_db, get_user_by_email, get_user_profile
 import openai  # ✅ Import OpenAI
 import json
 import os
