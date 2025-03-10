@@ -6,6 +6,7 @@ import json
 import os
 from dotenv import load_dotenv
 import requests
+from config import PROMPT_MICROSERVICE_URL
 
 # ✅ Initialize FastAPI App
 app = FastAPI()
@@ -101,32 +102,73 @@ def query_openai_model(prompt):
         print(f"❌ Exception in OpenAI API call: {str(e)}")
         return "Error: Unable to get response."
 
+def find_missing_fields(profile):
+    fields_order = [
+        "name", "age", "weekly_mileage", "race_type",
+        "best_time", "best_time_date", "last_time",
+        "last_time_date", "target_race", "target_time",
+        "injury_history", "nutrition", "last_check_in"
+    ]
+    missing = []
+    for field in fields_order:
+        val = profile.get(field)
+        if not val or (isinstance(val, list) and not any(val)):
+            missing.append(field)
+    return missing
+
 # ✅ API Route: Profile Chat
 @app.post("/profile-chat")
 async def profile_chat(request: ProfileChatRequest):
-    """Dedicated route for guiding the user through profile completion."""
+    # 1. Load or create user profile
     profile_data = load_user_profile(request.email)
 
-    # ✅ Construct profile-based prompt
-    full_prompt = f"""
-    **USER PROFILE DETAILS:**
-    {json.dumps(profile_data, indent=2)}
+    # 2. Check if profile is complete
+    missing = find_missing_fields(profile_data)
+    if not missing:
+        # If no fields missing, maybe skip microservice or ask about goals
+        return {
+            "assistant_response": "Profile is complete! (demo).",
+            "profile_data": profile_data
+        }
 
-    **USER MESSAGE:**
-    {request.message}
+    # For demonstration, pick first missing field
+    next_field = missing[0]
+    attempt = 0
+    confirmation = False
 
-    **TASK:**
-    1. Identify missing fields in the user's profile.
-    2. Ask a relevant question to collect missing data.
-    3. If the profile is complete, ask about training goals.
-    """
+    # 3. Build microservice body
+    body_for_microservice = {
+        "field": next_field,
+        "attempt": attempt,
+        "confirmation": confirmation,
+        "last_message": request.message,
+        "user_profile": json.dumps(profile_data),
+        "chat_history": ""
+    }
 
-    response = query_openai_model(full_prompt)
+    # 4. Call the microservice
+    try:
+        mc_response = requests.post(
+            PROMPT_MICROSERVICE_URL,
+            json=body_for_microservice
+        )
+        if mc_response.status_code == 200:
+            prompt_data = mc_response.json()
+            final_prompt = prompt_data.get("prompt_text", "")
+        else:
+            final_prompt = f"[Microservice error: {mc_response.status_code} - {mc_response.text}]"
+    except Exception as e:
+        final_prompt = f"[Could not contact microservice: {str(e)}]"
 
+    # 5. Send that prompt to OpenAI
+    openai_response = query_openai_model(final_prompt)
+
+    # 6. Return the LLM’s response
     return {
-        "assistant_response": response,
+        "assistant_response": openai_response,
         "profile_data": profile_data
     }
+
 
 # ✅ Start FastAPI Server
 if __name__ == "__main__":

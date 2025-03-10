@@ -285,3 +285,26 @@ def save_user_profile(user_id, profile_data):
         if 'conn' in locals() and conn:
             conn.rollback()
         return False
+
+
+def create_default_profile(user_id):
+    """Creates a new profile with all fields set to None when a user registers."""
+    default_profile = {
+        "user_id": user_id,
+        "name": None,
+        "age": None,
+        "weekly_mileage": None,
+        "race_type": None,
+        "best_time": None,
+        "best_time_date": None,
+        "last_time": None,
+        "last_time_date": None,
+        "target_race": None,
+        "target_time": None,
+        "last_check_in": None,
+        "injury_history": [],
+        "nutrition": []
+    }
+    save_user_profile(user_id, default_profile)  # Save to DB
+
+
