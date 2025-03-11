@@ -275,130 +275,171 @@ import requests
 # Define the URL for the profile update service
 PROFILE_UPDATE_URL = os.getenv("PROFILE_UPDATE_URL", "https://your-profile-update-service.onrender.com/profile-update")
 
-FIRST_CALL_DONE = False
+# FIRST_CALL_DONE = False
 
-@app.post("/profile-chat")
-def profile_chat(req: ProfileChatRequest):
-    global FIRST_CALL_DONE
+# @app.post("/profile-chat")
+# def profile_chat(req: ProfileChatRequest):
+#     global FIRST_CALL_DONE
 
-    """
-    1) Retrieve user by email. If not found, return an error (no user creation).
-    2) Fetch user profile from DB.
-    3) Force-update weekly_mileage=70 for user_id=1 on first call (just to confirm logs).
-    4) Determine which field we need next by checking the user's profile 
-       in the order of FIELD_ORDER.
-    5) Parse the user's message with extract_run_info.
-    6) If the needed field can be extracted, call the microservice.
-    7) Re-check, then call conversation manager, etc.
-    """
+#     """
+#     1) Retrieve user by email. If not found, return an error (no user creation).
+#     2) Fetch user profile from DB.
+#     3) Force-update weekly_mileage=70 for user_id=1 on first call (just to confirm logs).
+#     4) Determine which field we need next by checking the user's profile 
+#        in the order of FIELD_ORDER.
+#     5) Parse the user's message with extract_run_info.
+#     6) If the needed field can be extracted, call the microservice.
+#     7) Re-check, then call conversation manager, etc.
+#     """
 
-    # 1) Retrieve user
-    user = get_user_by_email(req.email)
-    if not user:
-        return {
-            "assistant_response": "❌ No user found. Please register first.",
-            "profile_data": {}
-        }
+#     # 1) Retrieve user
+#     user = get_user_by_email(req.email)
+#     if not user:
+#         return {
+#             "assistant_response": "❌ No user found. Please register first.",
+#             "profile_data": {}
+#         }
 
-    user_id = user["id"]
+#     user_id = user["id"]
 
-    # 2) Fetch profile
-    db_profile = get_user_profile(user_id)
-    if not db_profile:
-        return {
-            "assistant_response": "❌ No user profile found. Please ensure the user has a profile.",
-            "profile_data": {}
-        }
+#     # 2) Fetch profile
+#     db_profile = get_user_profile(user_id)
+#     if not db_profile:
+#         return {
+#             "assistant_response": "❌ No user profile found. Please ensure the user has a profile.",
+#             "profile_data": {}
+#         }
 
-    # 3) Force an update to see if the microservice logs show up
-    if not FIRST_CALL_DONE:
-        print("🚀 Forcing an update to weekly_mileage=70 for user_id=1, to test the microservice call.")
-        try:
-            force_resp = requests.post(
-                f"{PROFILE_UPDATE_URL}/update-field",
-                json={
-                    "user_id": 1,
-                    "field_name": "weekly_mileage",
-                    "field_value": 70
-                }
-            )
-            if force_resp.ok:
-                print("✅ Force update succeeded!")
-            else:
-                print(f"❌ Force update failed: {force_resp.text}")
-        except Exception as e:
-            print(f"❌ Exception during forced update: {str(e)}")
+#     # 3) Force an update to see if the microservice logs show up
+#     if not FIRST_CALL_DONE:
+#         print("🚀 Forcing an update to weekly_mileage=70 for user_id=1, to test the microservice call.")
+#         try:
+#             force_resp = requests.post(
+#                 f"{PROFILE_UPDATE_URL}/update-field",
+#                 json={
+#                     "user_id": 1,
+#                     "field_name": "weekly_mileage",
+#                     "field_value": 70
+#                 }
+#             )
+#             if force_resp.ok:
+#                 print("✅ Force update succeeded!")
+#             else:
+#                 print(f"❌ Force update failed: {force_resp.text}")
+#         except Exception as e:
+#             print(f"❌ Exception during forced update: {str(e)}")
 
-        FIRST_CALL_DONE = True
+#         FIRST_CALL_DONE = True
 
-    # 4) Determine the next needed field
-    needed_field = get_next_field_to_ask(db_profile)
-    print(f"🔍 Next needed field is: {needed_field}")
+#     # 4) Determine the next needed field
+#     needed_field = get_next_field_to_ask(db_profile)
+#     print(f"🔍 Next needed field is: {needed_field}")
 
-    # 5) Parse the user's message
-    parsed = extract_run_info(req.message)
-    print(f"🔍 Parsed from user message: {parsed}")
+#     # 5) Parse the user's message
+#     parsed = extract_run_info(req.message)
+#     print(f"🔍 Parsed from user message: {parsed}")
 
-    # 6) If there's a needed field, see if we can fill it from parsed data
-    if needed_field is not None:
-        new_value = parse_value_for_field(needed_field, parsed)
-        print(f"🔍 parse_value_for_field returned: {new_value}")
-        if new_value is not None:
-            # Update the field using the web service
-            try:
-                update_response = requests.post(
-                    f"{PROFILE_UPDATE_URL}/update-field",
-                    json={
-                        "user_id": user_id,
-                        "field_name": needed_field,
-                        "field_value": new_value
-                    }
-                )
+#     # 6) If there's a needed field, see if we can fill it from parsed data
+#     if needed_field is not None:
+#         new_value = parse_value_for_field(needed_field, parsed)
+#         print(f"🔍 parse_value_for_field returned: {new_value}")
+#         if new_value is not None:
+#             # Update the field using the web service
+#             try:
+#                 update_response = requests.post(
+#                     f"{PROFILE_UPDATE_URL}/update-field",
+#                     json={
+#                         "user_id": user_id,
+#                         "field_name": needed_field,
+#                         "field_value": new_value
+#                     }
+#                 )
                 
-                if not update_response.ok:
-                    print(f"❌ Error updating {needed_field} via web service: {update_response.text}")
-                else:
-                    print(f"✅ Successfully updated {needed_field} to {new_value} via web service")
-            except Exception as e:
-                print(f"❌ Error calling profile update service: {str(e)}")
+#                 if not update_response.ok:
+#                     print(f"❌ Error updating {needed_field} via web service: {update_response.text}")
+#                 else:
+#                     print(f"✅ Successfully updated {needed_field} to {new_value} via web service")
+#             except Exception as e:
+#                 print(f"❌ Error calling profile update service: {str(e)}")
 
-    # 7) Re-check updated profile
-    db_profile = get_user_profile(user_id)
-    needed_field = get_next_field_to_ask(db_profile)
+#     # 7) Re-check updated profile
+#     db_profile = get_user_profile(user_id)
+#     needed_field = get_next_field_to_ask(db_profile)
 
-    # 8) Call conversation manager
-    body = {
-        "user_message": req.message,
-        "profile_data": db_profile
-    }
+#     # 8) Call conversation manager
+#     body = {
+#         "user_message": req.message,
+#         "profile_data": db_profile
+#     }
+#     try:
+#         manager_resp = requests.post(CONVERSATION_MANAGER_URL, json=body)
+#         if manager_resp.status_code != 200:
+#             return {
+#                 "assistant_response": f"Error from manager: {manager_resp.text}",
+#                 "profile_data": db_profile
+#             }
+#         manager_data = manager_resp.json()
+#     except Exception as e:
+#         return {
+#             "assistant_response": f"Could not contact manager: {str(e)}",
+#             "profile_data": db_profile
+#         }
+
+#     if manager_data.get("profile_complete"):
+#         return {
+#             "assistant_response": "Profile is complete!",
+#             "profile_data": db_profile
+#         }
+
+#     # 9) Prompt the user again via the LLM
+#     final_prompt = manager_data.get("final_prompt", "")
+#     openai_reply = query_openai_model(final_prompt)
+
+#     return {
+#         "assistant_response": openai_reply,
+#         "profile_data": db_profile
+#     }
+
+from fastapi import APIRouter
+import requests
+
+router = APIRouter()
+
+PROFILE_UPDATE_URL = "https://your-profile-update-service.onrender.com"  # Adjust as needed
+
+@router.post("/profile-chat")
+def profile_chat():
+    """
+    A minimal route that ONLY calls the update-field microservice,
+    setting weekly_mileage=70 for user_id=1. Returns success/failure info.
+    """
+    print("🚀 Forcing an update to weekly_mileage=70 for user_id=1, to test the microservice call.")
+
+    # Attempt the forced update
     try:
-        manager_resp = requests.post(CONVERSATION_MANAGER_URL, json=body)
-        if manager_resp.status_code != 200:
-            return {
-                "assistant_response": f"Error from manager: {manager_resp.text}",
-                "profile_data": db_profile
+        force_resp = requests.post(
+            f"{PROFILE_UPDATE_URL}/update-field",
+            json={
+                "user_id": 1,
+                "field_name": "weekly_mileage",
+                "field_value": 70
             }
-        manager_data = manager_resp.json()
+        )
+        if force_resp.ok:
+            print("✅ Force update succeeded!")
+            return {"status": "success", "details": "Updated weekly_mileage to 70 for user_id=1"}
+        else:
+            error_msg = f"❌ Force update failed: {force_resp.text}"
+            print(error_msg)
+            return {"status": "error", "details": error_msg}
     except Exception as e:
-        return {
-            "assistant_response": f"Could not contact manager: {str(e)}",
-            "profile_data": db_profile
-        }
+        error_msg = f"❌ Exception during forced update: {str(e)}"
+        print(error_msg)
+        return {"status": "error", "details": error_msg}
 
-    if manager_data.get("profile_complete"):
-        return {
-            "assistant_response": "Profile is complete!",
-            "profile_data": db_profile
-        }
 
-    # 9) Prompt the user again via the LLM
-    final_prompt = manager_data.get("final_prompt", "")
-    openai_reply = query_openai_model(final_prompt)
 
-    return {
-        "assistant_response": openai_reply,
-        "profile_data": db_profile
-    }
+
 
 ##################################################
 # Run if local
