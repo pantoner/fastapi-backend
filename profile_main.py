@@ -1,151 +1,3 @@
-############################
-# profile_main.py - Fixed Version
-############################
-
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-import openai
-from openai import OpenAI
-import os
-import requests
-import json
-from typing import Optional, Dict, Any
-from datetime import datetime
-
-from dotenv import load_dotenv
-
-# DB functions from your db.py
-from db import (
-    get_user_by_email,
-    create_user,
-    get_user_profile,
-    save_user_profile,
-    create_default_profile
-)
-
-#############################################
-# 1) Load Environment for OpenAI
-#############################################
-if not os.getenv("RENDER_EXTERNAL_HOSTNAME"):
-    load_dotenv()
-
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-if not OPENAI_API_KEY:
-    raise RuntimeError("OPENAI_API_KEY is missing!")
-
-# Create OpenAI client with updated SDK
-client = OpenAI(api_key=OPENAI_API_KEY)
-
-#############################################
-# 2) Conversation Manager Microservice
-#############################################
-CONVERSATION_MANAGER_URL = "https://profileprompt.onrender.com/manager/conversation-manager"
-
-#############################################
-# 3) FastAPI App
-#############################################
-app = FastAPI()
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-#############################################
-# 4) Pydantic Model
-#############################################
-class ProfileChatRequest(BaseModel):
-    message: str
-    email: str
-
-#############################################
-# 5) The LLM Parser: extract_run_info
-#############################################
-def extract_run_info(text_input: str) -> dict:
-    """
-    Sends text_input to an LLM and attempts to parse:
-      - number  => The first numeric value
-      - racetype => {5k, 10k, half marathon, marathon}
-      - dates   => any date
-    Returns { "number": "", "racetype": "", "dates": "" }
-    """
-
-    system_prompt = (
-        "You are a text parser. Find:\n"
-        "1) The first numeric value => 'number'\n"
-        "2) Race type => 'racetype'\n"
-        "3) Date => 'dates'\n"
-        "Return valid JSON EXACTLY {\"number\":\"\",\"racetype\":\"\",\"dates\":\"\"}\n"
-        "No extra keys or explanation. If not found, keep them empty."
-    )
-
-    user_prompt = f"Extract from this text:\n{text_input}"
-
-    try:
-        # Updated to use the new OpenAI client
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",  # or "gpt-4"
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            max_tokens=200,
-            temperature=0
-        )
-        parsed_text = response.choices[0].message.content.strip()
-
-        try:
-            result = json.loads(parsed_text)
-        except json.JSONDecodeError:
-            result = {"number": "", "racetype": "", "dates": ""}
-
-        for k in ["number", "racetype", "dates"]:
-            if k not in result:
-                result[k] = ""
-        return result
-
-    except Exception as e:
-        print(f"❌ LLM parse error: {e}")
-        return {"number": "", "racetype": "", "dates": ""}
-
-
-#############################################
-# 6) query_openai_model for final prompt
-#############################################
-def query_openai_model(prompt: str) -> str:
-    """
-    If the conversation manager returns a 'final_prompt',
-    we call this to produce a short response for the user.
-    """
-    try:
-        # Using the OpenAI client directly instead of requests
-        response = client.chat.completions.create(
-            model="gpt-4",  # or "gpt-3.5-turbo"
-            messages=[
-                {
-                    "role": "system",
-                    "content": (
-                        "You are an AI assistant designed to help users complete their running profile. "
-                        "Ask for missing information, confirm existing details, and guide them step by step. "
-                        "Your responses must be under 50 words and always end with a follow-up question."
-                    )
-                },
-                {"role": "user", "content": prompt}
-            ],
-            max_tokens=50
-        )
-        return response.choices[0].message.content
-    except Exception as e:
-        print(f"❌ Exception calling OpenAI: {str(e)}")
-        return "Error: Unable to get response."
-
-#############################################
-# 7) /profile-chat Endpoint
-#############################################
 @app.post("/profile-chat")
 def profile_chat(req: ProfileChatRequest):
     """
@@ -176,40 +28,110 @@ def profile_chat(req: ProfileChatRequest):
     parsed = extract_run_info(req.message)
     profile_updated = False
     
-    # If we find a 'number', let's store it as weekly_mileage
+    # Process extracted data and update the profile
+    # Weekly mileage - from "number" field
     if parsed["number"]:
         try:
             miles = int(parsed["number"])
             db_profile["weekly_mileage"] = miles
             profile_updated = True
+            print(f"✅ Parsed weekly_mileage: {miles}")
         except ValueError:
-            # if it's not an integer, skip
-            pass
-            
-    # If we find a racetype, store it as 'race_type'
+            print(f"❌ Could not parse number as integer: {parsed['number']}")
+    
+    # Race type - from "racetype" field
     if parsed["racetype"]:
         db_profile["race_type"] = parsed["racetype"]
         profile_updated = True
-        
-    # If we find a date, store in last_time_date
+        print(f"✅ Parsed race_type: {parsed['racetype']}")
+    
+    # Dates - could be for various date fields
     if parsed["dates"]:
-        try:
-            # Try to parse the date into a proper format for the database
-            # The exact format depends on your database requirements
-            date_str = parsed["dates"]
-            db_profile["last_time_date"] = date_str
-            profile_updated = True
-        except Exception as e:
-            print(f"❌ Error parsing date: {e}")
+        # The context of the conversation should determine which date field to update
+        # For now, let's use context clues from the message to decide
+        message_lower = req.message.lower()
+        
+        # Look for context clues in the message
+        if "best" in message_lower or "pr" in message_lower or "personal record" in message_lower:
+            db_profile["best_time_date"] = parsed["dates"]
+            print(f"✅ Updated best_time_date: {parsed['dates']}")
+        elif "last" in message_lower or "previous" in message_lower or "recent" in message_lower:
+            db_profile["last_time_date"] = parsed["dates"]
+            print(f"✅ Updated last_time_date: {parsed['dates']}")
+        else:
+            # Default to last_time_date if no specific context
+            db_profile["last_time_date"] = parsed["dates"]
+            print(f"✅ Updated last_time_date (default): {parsed['dates']}")
+        
+        profile_updated = True
 
-    # 2b) Save updated profile in DB only if we made changes
+    # 2b) Enhanced extraction based on conversation context
+    message_lower = req.message.lower()
+    
+    # If race type is mentioned, see if "target" race is also mentioned
+    if parsed["racetype"] and ("target" in message_lower or "upcoming" in message_lower or "next" in message_lower):
+        # We already have the race type, now look for a specific race name
+        # This is tricky without advanced NLP, but we'll use a simple approach
+        
+        # First try to extract proper nouns that might be race names
+        # For simplicity, we'll check if there are words with capital letters that aren't at the start of a sentence
+        words = req.message.split()
+        capitalized_words = []
+        
+        for i, word in enumerate(words):
+            # Skip first word of sentences
+            if i > 0 and word[0].isupper() and not words[i-1].endswith('.'):
+                capitalized_words.append(word)
+        
+        if capitalized_words and parsed["racetype"]:
+            # If we found capitalized words, use them as the race name along with the race type
+            race_name = " ".join(capitalized_words)
+            db_profile["target_race"] = f"{race_name} {parsed['racetype']}"
+            profile_updated = True
+            print(f"✅ Extracted target_race: {db_profile['target_race']}")
+        elif "yes" in message_lower and db_profile.get("race_type"):
+            # If user confirms with "yes" and we have a race type, use it
+            race_type = db_profile.get("race_type", "")
+            if race_type:
+                db_profile["target_race"] = f"{race_type}"
+                profile_updated = True
+                print(f"✅ Setting target_race from confirmation: {db_profile['target_race']}")
+
+    # Time information (could be best_time, last_time, or target_time)
+    import re
+    time_match = re.search(r'(\d{1,2}):(\d{2})', message_lower)
+    if time_match:
+        time_str = f"{time_match.group(1)}:{time_match.group(2)}"
+        
+        # Determine which time field to update based on context
+        if "target" in message_lower or "goal" in message_lower or "aiming for" in message_lower:
+            db_profile["target_time"] = time_str
+            print(f"✅ Updated target_time: {time_str}")
+        elif "best" in message_lower or "pr" in message_lower or "fastest" in message_lower:
+            db_profile["best_time"] = time_str
+            print(f"✅ Updated best_time: {time_str}")
+        elif "last" in message_lower or "previous" in message_lower or "recent" in message_lower:
+            db_profile["last_time"] = time_str
+            print(f"✅ Updated last_time: {time_str}")
+        else:
+            # If no context clues, use previous message history to determine intent
+            # This is a simplified approach - ideally you'd track conversation state
+            db_profile["target_time"] = time_str
+            print(f"✅ Updated target_time (default): {time_str}")
+        
+        profile_updated = True
+
+    # 2c) Save updated profile in DB only if we made changes
     if profile_updated:
+        print(f"Saving updated profile to DB: {db_profile}")
         success = save_user_profile(user_id, db_profile)
         if not success:
             print("❌ Failed to save profile updates to database")
         else:
+            print("✅ Successfully saved profile updates to database")
             # Refresh the profile data from the database to ensure we have the latest
             db_profile = get_user_profile(user_id)
+            print(f"Refreshed profile from DB: {db_profile}")
 
     # 3) Call the conversation manager
     body = {
@@ -247,6 +169,7 @@ def profile_chat(req: ProfileChatRequest):
         if not success:
             print("❌ Failed to save manager-updated profile to database")
         else:
+            print("✅ Successfully saved manager-updated profile to database")
             # Refresh again to ensure we have the latest data
             db_profile = get_user_profile(user_id)
 
@@ -257,12 +180,3 @@ def profile_chat(req: ProfileChatRequest):
         "assistant_response": openai_reply,
         "profile_data": db_profile  # Return the latest profile from the database
     }
-
-
-##################################################
-# Run if local
-##################################################
-if __name__ == "__main__":
-    import uvicorn
-    print("🚀 Starting on 0.0.0.0:8001")
-    uvicorn.run(app, host="0.0.0.0", port=8001)
