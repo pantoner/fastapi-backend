@@ -182,6 +182,7 @@ FIELD_ORDER = [
     ("nutrition", "ask_nutrition")
 ]
 
+
 def get_next_field_to_ask(profile: dict) -> str:
     """
     Returns the next field name from FIELD_ORDER that has not been set 
@@ -263,6 +264,17 @@ class ProfileChatRequest(BaseModel):
     email: str
 
 
+import requests
+
+# Define the URL for the profile update service
+PROFILE_UPDATE_URL = os.getenv("PROFILE_UPDATE_URL", "https://your-profile-update-service.onrender.com/profile-update")
+
+@app.post("/profile-chat")
+import requests
+
+# Define the URL for the profile update service
+PROFILE_UPDATE_URL = os.getenv("PROFILE_UPDATE_URL", "https://your-profile-update-service.onrender.com/profile-update")
+
 @app.post("/profile-chat")
 def profile_chat(req: ProfileChatRequest):
     """
@@ -271,14 +283,13 @@ def profile_chat(req: ProfileChatRequest):
     3) Determine which field we need next by checking the user's profile 
        in the order of FIELD_ORDER.
     4) Parse the user's message with extract_run_info.
-    5) If the needed field can be extracted from the parsed data, update it.
+    5) If the needed field can be extracted from the parsed data, update it via the web service.
     6) Re-check if there's another field needed. If all are filled, the profile is complete.
     7) Call the conversation manager with the updated profile to decide how to proceed.
     8) If the manager indicates more steps, query the LLM for a short response. 
        Otherwise, declare the profile complete.
     9) Return the final response and the updated profile.
     """
-
     # 1) Retrieve user by email
     user = get_user_by_email(req.email)
     if not user:
@@ -287,7 +298,6 @@ def profile_chat(req: ProfileChatRequest):
             "profile_data": {}
         }
     user_id = user["id"]
-
     # 2) Fetch profile
     db_profile = get_user_profile(user_id)
     if not db_profile:
@@ -295,24 +305,34 @@ def profile_chat(req: ProfileChatRequest):
             "assistant_response": "❌ No user profile found. Please ensure the user has a profile.",
             "profile_data": {}
         }
-
     # 3) Figure out which field is needed next
     needed_field = get_next_field_to_ask(db_profile)
-
     # 4) Parse the user's message
     parsed = extract_run_info(req.message)
-
     # 5) If there's a needed field, see if we can fill it from parsed data
     if needed_field is not None:
         new_value = parse_value_for_field(needed_field, parsed)
         if new_value is not None:
-            # Update the field
-            update_profile_field(user_id, needed_field, new_value)
-
+            # Update the field using the web service
+            try:
+                update_response = requests.post(
+                    f"{PROFILE_UPDATE_URL}/update-field",
+                    json={
+                        "user_id": user_id,
+                        "field_name": needed_field,
+                        "field_value": new_value
+                    }
+                )
+                
+                if not update_response.ok:
+                    print(f"❌ Error updating {needed_field} via web service: {update_response.text}")
+                else:
+                    print(f"✅ Successfully updated {needed_field} to {new_value} via web service")
+            except Exception as e:
+                print(f"❌ Error calling profile update service: {str(e)}")
     # 6) Pull updated profile again
     db_profile = get_user_profile(user_id)
     needed_field = get_next_field_to_ask(db_profile)
-
     # If no fields remain, we consider the profile "complete" 
     # or at least proceed to conversation manager for final check.
     # 7) Call conversation manager
@@ -333,25 +353,21 @@ def profile_chat(req: ProfileChatRequest):
             "assistant_response": f"Could not contact manager: {str(e)}",
             "profile_data": db_profile
         }
-
     # The manager could say it's complete or instruct the next step
     if manager_data.get("profile_complete"):
         return {
             "assistant_response": "Profile is complete!",
             "profile_data": db_profile
         }
-
     # 8) Otherwise, manager gave us a final prompt; 
     #    we ask the LLM for a short response to the user.
     final_prompt = manager_data.get("final_prompt", "")
     openai_reply = query_openai_model(final_prompt)
-
     # 9) Return the assistant's message + updated profile
     return {
         "assistant_response": openai_reply,
         "profile_data": db_profile
     }
-
 
 ##################################################
 # Run if local
