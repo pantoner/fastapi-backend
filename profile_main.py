@@ -1,14 +1,17 @@
 ############################
-# profile_main.py
+# profile_main.py - Fixed Version
 ############################
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import openai
+from openai import OpenAI
 import os
 import requests
 import json
+from typing import Optional, Dict, Any
+from datetime import datetime
 
 from dotenv import load_dotenv
 
@@ -30,7 +33,9 @@ if not os.getenv("RENDER_EXTERNAL_HOSTNAME"):
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 if not OPENAI_API_KEY:
     raise RuntimeError("OPENAI_API_KEY is missing!")
-openai.api_key = OPENAI_API_KEY
+
+# Create OpenAI client with updated SDK
+client = OpenAI(api_key=OPENAI_API_KEY)
 
 #############################################
 # 2) Conversation Manager Microservice
@@ -60,10 +65,6 @@ class ProfileChatRequest(BaseModel):
 #############################################
 # 5) The LLM Parser: extract_run_info
 #############################################
-# We'll replicate the function inlined here. 
-# This version uses openai.OpenAI(...) style if you prefer,
-# or we can just do openai.ChatCompletion. We'll do the latter for simplicity:
-
 def extract_run_info(text_input: str) -> dict:
     """
     Sends text_input to an LLM and attempts to parse:
@@ -85,7 +86,8 @@ def extract_run_info(text_input: str) -> dict:
     user_prompt = f"Extract from this text:\n{text_input}"
 
     try:
-        response = openai.ChatCompletion.create(
+        # Updated to use the new OpenAI client
+        response = client.chat.completions.create(
             model="gpt-3.5-turbo",  # or "gpt-4"
             messages=[
                 {"role": "system", "content": system_prompt},
@@ -94,7 +96,7 @@ def extract_run_info(text_input: str) -> dict:
             max_tokens=200,
             temperature=0
         )
-        parsed_text = response["choices"][0]["message"]["content"].strip()
+        parsed_text = response.choices[0].message.content.strip()
 
         try:
             result = json.loads(parsed_text)
@@ -120,13 +122,10 @@ def query_openai_model(prompt: str) -> str:
     we call this to produce a short response for the user.
     """
     try:
-        headers = {
-            "Authorization": f"Bearer {OPENAI_API_KEY}",
-            "Content-Type": "application/json"
-        }
-        payload = {
-            "model": "gpt-4",  # or "gpt-3.5-turbo"
-            "messages": [
+        # Using the OpenAI client directly instead of requests
+        response = client.chat.completions.create(
+            model="gpt-4",  # or "gpt-3.5-turbo"
+            messages=[
                 {
                     "role": "system",
                     "content": (
@@ -137,15 +136,9 @@ def query_openai_model(prompt: str) -> str:
                 },
                 {"role": "user", "content": prompt}
             ],
-            "max_tokens": 50
-        }
-        resp = requests.post("https://api.openai.com/v1/chat/completions", json=payload, headers=headers)
-        if resp.status_code == 200:
-            data = resp.json()
-            return data["choices"][0]["message"]["content"]
-        else:
-            print(f"❌ OpenAI Error: {resp.status_code} - {resp.text}")
-            return "Error: Unable to get response."
+            max_tokens=50
+        )
+        return response.choices[0].message.content
     except Exception as e:
         print(f"❌ Exception calling OpenAI: {str(e)}")
         return "Error: Unable to get response."
@@ -157,7 +150,7 @@ def query_openai_model(prompt: str) -> str:
 def profile_chat(req: ProfileChatRequest):
     """
     1) Find/create user in DB by email
-    2) Parse user's current message with 'extract_run_info' => store (weekly_mileage, race_type, last_time_date)
+    2) Parse user's current message with 'extract_run_info' => store in appropriate DB fields
     3) Call the conversation manager => returns { profile_complete, final_prompt }
     4) If complete => short-circuit
     5) Otherwise => call query_openai_model(final_prompt) => return to user
@@ -181,23 +174,42 @@ def profile_chat(req: ProfileChatRequest):
 
     # 2a) parse the user's message for fields
     parsed = extract_run_info(req.message)
-    # If we find a 'number', let's store it as weekly_mileage (example approach)
+    profile_updated = False
+    
+    # If we find a 'number', let's store it as weekly_mileage
     if parsed["number"]:
         try:
             miles = int(parsed["number"])
             db_profile["weekly_mileage"] = miles
+            profile_updated = True
         except ValueError:
             # if it's not an integer, skip
             pass
+            
     # If we find a racetype, store it as 'race_type'
     if parsed["racetype"]:
         db_profile["race_type"] = parsed["racetype"]
-    # If we find a date, store in last_time_date (or whichever field you prefer)
+        profile_updated = True
+        
+    # If we find a date, store in last_time_date
     if parsed["dates"]:
-        db_profile["last_time_date"] = parsed["dates"]
+        try:
+            # Try to parse the date into a proper format for the database
+            # The exact format depends on your database requirements
+            date_str = parsed["dates"]
+            db_profile["last_time_date"] = date_str
+            profile_updated = True
+        except Exception as e:
+            print(f"❌ Error parsing date: {e}")
 
-    # 2b) Save updated profile in DB
-    save_user_profile(user_id, db_profile)
+    # 2b) Save updated profile in DB only if we made changes
+    if profile_updated:
+        success = save_user_profile(user_id, db_profile)
+        if not success:
+            print("❌ Failed to save profile updates to database")
+        else:
+            # Refresh the profile data from the database to ensure we have the latest
+            db_profile = get_user_profile(user_id)
 
     # 3) Call the conversation manager
     body = {
@@ -228,13 +240,22 @@ def profile_chat(req: ProfileChatRequest):
     # 5) Otherwise, we get a final_prompt from the manager
     final_prompt = manager_data.get("final_prompt", "")
     updated_profile = manager_data.get("profile_data", db_profile)
+    
+    # If the manager returned updated profile data, save it to the database
+    if updated_profile != db_profile:
+        success = save_user_profile(user_id, updated_profile)
+        if not success:
+            print("❌ Failed to save manager-updated profile to database")
+        else:
+            # Refresh again to ensure we have the latest data
+            db_profile = get_user_profile(user_id)
 
     # We call openai to get a short response
     openai_reply = query_openai_model(final_prompt)
 
     return {
         "assistant_response": openai_reply,
-        "profile_data": updated_profile
+        "profile_data": db_profile  # Return the latest profile from the database
     }
 
 
