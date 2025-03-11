@@ -308,3 +308,60 @@ def create_default_profile(user_id):
     save_user_profile(user_id, default_profile)  # Save to DB
 
 
+def update_profile_field(user_id, field_name, field_value):
+    """
+    Update a single field in a user's profile.
+    
+    Args:
+        user_id (int): The ID of the user
+        field_name (str): The name of the field to update
+        field_value (any): The new value for the field
+        
+    Returns:
+        bool: True if the update was successful, False otherwise
+    """
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                # Check if profile exists
+                cursor.execute("SELECT id FROM user_profiles WHERE user_id = %s", (user_id,))
+                profile_exists = cursor.fetchone()
+                
+                if not profile_exists:
+                    print(f"❌ Profile not found for user_id: {user_id}")
+                    return False
+                
+                # Handle array fields (injury_history and nutrition)
+                if field_name in ['injury_history', 'nutrition']:
+                    # Make sure field_value is a list
+                    if not isinstance(field_value, list):
+                        if field_value is None:
+                            field_value = []
+                        else:
+                            field_value = [field_value]
+                    
+                    # Clear existing entries for this field
+                    cursor.execute(f"DELETE FROM {field_name} WHERE user_id = %s", (user_id,))
+                    
+                    # Insert new entries
+                    for item in field_value:
+                        cursor.execute(
+                            f"INSERT INTO {field_name} (user_id, description) VALUES (%s, %s)",
+                            (user_id, item)
+                        )
+                else:
+                    # Update the regular field in the user_profiles table
+                    cursor.execute(
+                        f"UPDATE user_profiles SET {field_name} = %s WHERE user_id = %s",
+                        (field_value, user_id)
+                    )
+                
+                conn.commit()
+                print(f"✅ Successfully updated {field_name} to {field_value} for user_id {user_id}")
+                return True
+                
+    except Exception as e:
+        print(f"❌ Error updating {field_name}: {str(e)}")
+        if 'conn' in locals() and conn:
+            conn.rollback()
+        return False
