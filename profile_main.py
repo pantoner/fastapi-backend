@@ -275,29 +275,33 @@ import requests
 # Define the URL for the profile update service
 PROFILE_UPDATE_URL = os.getenv("PROFILE_UPDATE_URL", "https://your-profile-update-service.onrender.com/profile-update")
 
+FIRST_CALL_DONE = False
+
 @app.post("/profile-chat")
 def profile_chat(req: ProfileChatRequest):
+    global FIRST_CALL_DONE
+
     """
     1) Retrieve user by email. If not found, return an error (no user creation).
     2) Fetch user profile from DB.
-    3) Determine which field we need next by checking the user's profile 
+    3) Force-update weekly_mileage=70 for user_id=1 on first call (just to confirm logs).
+    4) Determine which field we need next by checking the user's profile 
        in the order of FIELD_ORDER.
-    4) Parse the user's message with extract_run_info.
-    5) If the needed field can be extracted from the parsed data, update it via the web service.
-    6) Re-check if there's another field needed. If all are filled, the profile is complete.
-    7) Call the conversation manager with the updated profile to decide how to proceed.
-    8) If the manager indicates more steps, query the LLM for a short response. 
-       Otherwise, declare the profile complete.
-    9) Return the final response and the updated profile.
+    5) Parse the user's message with extract_run_info.
+    6) If the needed field can be extracted, call the microservice.
+    7) Re-check, then call conversation manager, etc.
     """
-    # 1) Retrieve user by email
+
+    # 1) Retrieve user
     user = get_user_by_email(req.email)
     if not user:
         return {
             "assistant_response": "❌ No user found. Please register first.",
             "profile_data": {}
         }
+
     user_id = user["id"]
+
     # 2) Fetch profile
     db_profile = get_user_profile(user_id)
     if not db_profile:
@@ -305,13 +309,37 @@ def profile_chat(req: ProfileChatRequest):
             "assistant_response": "❌ No user profile found. Please ensure the user has a profile.",
             "profile_data": {}
         }
-    # 3) Figure out which field is needed next
+
+    # 3) Force an update to see if the microservice logs show up
+    if not FIRST_CALL_DONE:
+        print("🚀 Forcing an update to weekly_mileage=70 for user_id=1, to test the microservice call.")
+        try:
+            force_resp = requests.post(
+                f"{PROFILE_UPDATE_URL}/update-field",
+                json={
+                    "user_id": 1,
+                    "field_name": "weekly_mileage",
+                    "field_value": 70
+                }
+            )
+            if force_resp.ok:
+                print("✅ Force update succeeded!")
+            else:
+                print(f"❌ Force update failed: {force_resp.text}")
+        except Exception as e:
+            print(f"❌ Exception during forced update: {str(e)}")
+
+        FIRST_CALL_DONE = True
+
+    # 4) Determine the next needed field
     needed_field = get_next_field_to_ask(db_profile)
     print(f"🔍 Next needed field is: {needed_field}")
-    # 4) Parse the user's message
+
+    # 5) Parse the user's message
     parsed = extract_run_info(req.message)
     print(f"🔍 Parsed from user message: {parsed}")
-    # 5) If there's a needed field, see if we can fill it from parsed data
+
+    # 6) If there's a needed field, see if we can fill it from parsed data
     if needed_field is not None:
         new_value = parse_value_for_field(needed_field, parsed)
         print(f"🔍 parse_value_for_field returned: {new_value}")
@@ -330,17 +358,15 @@ def profile_chat(req: ProfileChatRequest):
                 if not update_response.ok:
                     print(f"❌ Error updating {needed_field} via web service: {update_response.text}")
                 else:
-                    print("⚠️ new_value is None, skipping update call.")
-                    print("⚠️ No needed_field, skipping update call.")
                     print(f"✅ Successfully updated {needed_field} to {new_value} via web service")
             except Exception as e:
                 print(f"❌ Error calling profile update service: {str(e)}")
-    # 6) Pull updated profile again
+
+    # 7) Re-check updated profile
     db_profile = get_user_profile(user_id)
     needed_field = get_next_field_to_ask(db_profile)
-    # If no fields remain, we consider the profile "complete" 
-    # or at least proceed to conversation manager for final check.
-    # 7) Call conversation manager
+
+    # 8) Call conversation manager
     body = {
         "user_message": req.message,
         "profile_data": db_profile
@@ -358,17 +384,17 @@ def profile_chat(req: ProfileChatRequest):
             "assistant_response": f"Could not contact manager: {str(e)}",
             "profile_data": db_profile
         }
-    # The manager could say it's complete or instruct the next step
+
     if manager_data.get("profile_complete"):
         return {
             "assistant_response": "Profile is complete!",
             "profile_data": db_profile
         }
-    # 8) Otherwise, manager gave us a final prompt; 
-    #    we ask the LLM for a short response to the user.
+
+    # 9) Prompt the user again via the LLM
     final_prompt = manager_data.get("final_prompt", "")
     openai_reply = query_openai_model(final_prompt)
-    # 9) Return the assistant's message + updated profile
+
     return {
         "assistant_response": openai_reply,
         "profile_data": db_profile
