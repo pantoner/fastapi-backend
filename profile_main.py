@@ -307,11 +307,14 @@ def profile_chat(req: ProfileChatRequest):
         }
     # 3) Figure out which field is needed next
     needed_field = get_next_field_to_ask(db_profile)
+    print(f"🔍 Next needed field is: {needed_field}")
     # 4) Parse the user's message
     parsed = extract_run_info(req.message)
+    print(f"🔍 Parsed from user message: {parsed}")
     # 5) If there's a needed field, see if we can fill it from parsed data
     if needed_field is not None:
         new_value = parse_value_for_field(needed_field, parsed)
+        print(f"🔍 parse_value_for_field returned: {new_value}")
         if new_value is not None:
             # Update the field using the web service
             try:
@@ -327,6 +330,8 @@ def profile_chat(req: ProfileChatRequest):
                 if not update_response.ok:
                     print(f"❌ Error updating {needed_field} via web service: {update_response.text}")
                 else:
+                    print("⚠️ new_value is None, skipping update call.")
+                    print("⚠️ No needed_field, skipping update call.")
                     print(f"✅ Successfully updated {needed_field} to {new_value} via web service")
             except Exception as e:
                 print(f"❌ Error calling profile update service: {str(e)}")
