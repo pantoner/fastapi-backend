@@ -1,4 +1,6 @@
+############################
 # profile_main.py
+############################
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -6,11 +8,11 @@ from pydantic import BaseModel
 import openai
 import os
 import requests
-import re
+import json
 
 from dotenv import load_dotenv
 
-# Import DB functions
+# DB functions from your db.py
 from db import (
     get_user_by_email,
     create_user,
@@ -20,7 +22,7 @@ from db import (
 )
 
 #############################################
-# 1) Environment & OpenAI Config
+# 1) Load Environment for OpenAI
 #############################################
 if not os.getenv("RENDER_EXTERNAL_HOSTNAME"):
     load_dotenv()
@@ -31,7 +33,7 @@ if not OPENAI_API_KEY:
 openai.api_key = OPENAI_API_KEY
 
 #############################################
-# 2) Microservice Endpoint
+# 2) Conversation Manager Microservice
 #############################################
 CONVERSATION_MANAGER_URL = "https://profileprompt.onrender.com/manager/conversation-manager"
 
@@ -49,32 +51,81 @@ app.add_middleware(
 )
 
 #############################################
-# 4) In-Memory Conversation State
-#############################################
-# Key: user_id
-# Value: dict with "pending_field": str or None
-# Example: USER_STATE[5] = { "pending_field": "weekly_mileage" }
-USER_STATE = {}
-
-#############################################
-# 5) Pydantic Model
+# 4) Pydantic Model
 #############################################
 class ProfileChatRequest(BaseModel):
     message: str
     email: str
 
 #############################################
-# 6) Query OpenAI
+# 5) The LLM Parser: extract_run_info
+#############################################
+# We'll replicate the function inlined here. 
+# This version uses openai.OpenAI(...) style if you prefer,
+# or we can just do openai.ChatCompletion. We'll do the latter for simplicity:
+
+def extract_run_info(text_input: str) -> dict:
+    """
+    Sends text_input to an LLM and attempts to parse:
+      - number  => The first numeric value
+      - racetype => {5k, 10k, half marathon, marathon}
+      - dates   => any date
+    Returns { "number": "", "racetype": "", "dates": "" }
+    """
+
+    system_prompt = (
+        "You are a text parser. Find:\n"
+        "1) The first numeric value => 'number'\n"
+        "2) Race type => 'racetype'\n"
+        "3) Date => 'dates'\n"
+        "Return valid JSON EXACTLY {\"number\":\"\",\"racetype\":\"\",\"dates\":\"\"}\n"
+        "No extra keys or explanation. If not found, keep them empty."
+    )
+
+    user_prompt = f"Extract from this text:\n{text_input}"
+
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",  # or "gpt-4"
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            max_tokens=200,
+            temperature=0
+        )
+        parsed_text = response["choices"][0]["message"]["content"].strip()
+
+        try:
+            result = json.loads(parsed_text)
+        except json.JSONDecodeError:
+            result = {"number": "", "racetype": "", "dates": ""}
+
+        for k in ["number", "racetype", "dates"]:
+            if k not in result:
+                result[k] = ""
+        return result
+
+    except Exception as e:
+        print(f"❌ LLM parse error: {e}")
+        return {"number": "", "racetype": "", "dates": ""}
+
+
+#############################################
+# 6) query_openai_model for final prompt
 #############################################
 def query_openai_model(prompt: str) -> str:
-    """Send the final prompt to OpenAI GPT-4 and return the model's short response."""
+    """
+    If the conversation manager returns a 'final_prompt',
+    we call this to produce a short response for the user.
+    """
     try:
         headers = {
             "Authorization": f"Bearer {OPENAI_API_KEY}",
             "Content-Type": "application/json"
         }
         payload = {
-            "model": "gpt-4-turbo",
+            "model": "gpt-4",  # or "gpt-3.5-turbo"
             "messages": [
                 {
                     "role": "system",
@@ -100,71 +151,55 @@ def query_openai_model(prompt: str) -> str:
         return "Error: Unable to get response."
 
 #############################################
-# 7) Naive Parsers
-#############################################
-def parse_mileage(msg: str):
-    """Extract first integer from message as weekly_mileage."""
-    match = re.search(r"\d+", msg)
-    return int(match.group(0)) if match else None
-
-def parse_age(msg: str):
-    """Extract first integer from message as age."""
-    match = re.search(r"\d+", msg)
-    return int(match.group(0)) if match else None
-
-#############################################
-# 8) /profile-chat Endpoint
+# 7) /profile-chat Endpoint
 #############################################
 @app.post("/profile-chat")
 def profile_chat(req: ProfileChatRequest):
     """
-    1) Find or create a user by email.
-    2) Get their DB profile.
-    3) If we have a pending_field (from last time), parse the current message to fill that field -> update DB.
-    4) Call manager with updated DB profile to see if profile is complete or which field is next.
-    5) If complete, return short-circuit.
-    6) Else, manager returns final_prompt -> we call OpenAI -> return model reply to user.
+    1) Find/create user in DB by email
+    2) Parse user's current message with 'extract_run_info' => store (weekly_mileage, race_type, last_time_date)
+    3) Call the conversation manager => returns { profile_complete, final_prompt }
+    4) If complete => short-circuit
+    5) Otherwise => call query_openai_model(final_prompt) => return to user
     """
 
-    # 1) Look up user
+    # 1) Find user
     user = get_user_by_email(req.email)
     if not user:
-        new_user_id = create_user(name="NewUser", email=req.email, password="temp123")
-        if not new_user_id:
+        new_id = create_user("NewUser", req.email, "temp123")
+        if not new_id:
             return {"assistant_response": "Error creating user in DB."}
-        create_default_profile(new_user_id)
+        create_default_profile(new_id)
         user = get_user_by_email(req.email)
     user_id = user["id"]
 
-    # 2) DB Profile
+    # 2) Get their DB profile
     db_profile = get_user_profile(user_id)
     if not db_profile:
         create_default_profile(user_id)
         db_profile = get_user_profile(user_id)
 
-    # -- Retrieve or init user state
-    if user_id not in USER_STATE:
-        USER_STATE[user_id] = {"pending_field": None}
-    state = USER_STATE[user_id]
-
-    # 3) If we have a pending_field, parse from current message, update DB
-    pf = state["pending_field"]
-    if pf == "weekly_mileage":
-        miles = parse_mileage(req.message)
-        if miles is not None:
+    # 2a) parse the user's message for fields
+    parsed = extract_run_info(req.message)
+    # If we find a 'number', let's store it as weekly_mileage (example approach)
+    if parsed["number"]:
+        try:
+            miles = int(parsed["number"])
             db_profile["weekly_mileage"] = miles
-            save_user_profile(user_id, db_profile)
-            state["pending_field"] = None
-    elif pf == "age":
-        years = parse_age(req.message)
-        if years is not None:
-            db_profile["age"] = years
-            save_user_profile(user_id, db_profile)
-            state["pending_field"] = None
+        except ValueError:
+            # if it's not an integer, skip
+            pass
+    # If we find a racetype, store it as 'race_type'
+    if parsed["racetype"]:
+        db_profile["race_type"] = parsed["racetype"]
+    # If we find a date, store in last_time_date (or whichever field you prefer)
+    if parsed["dates"]:
+        db_profile["last_time_date"] = parsed["dates"]
 
-    USER_STATE[user_id] = state  # save updated state
+    # 2b) Save updated profile in DB
+    save_user_profile(user_id, db_profile)
 
-    # 4) Call conversation manager with updated profile
+    # 3) Call the conversation manager
     body = {
         "user_message": req.message,
         "profile_data": db_profile
@@ -183,28 +218,18 @@ def profile_chat(req: ProfileChatRequest):
             "profile_data": db_profile
         }
 
-    # 5) If profile is complete
+    # 4) If profile_complete
     if manager_data.get("profile_complete"):
         return {
             "assistant_response": "Profile is complete!",
             "profile_data": db_profile
         }
 
+    # 5) Otherwise, we get a final_prompt from the manager
     final_prompt = manager_data.get("final_prompt", "")
     updated_profile = manager_data.get("profile_data", db_profile)
 
-    # The manager might indicate the next missing field in the final_prompt
-    # We'll do naive detection:
-    if "weekly mileage" in final_prompt.lower():
-        state["pending_field"] = "weekly_mileage"
-    elif "age" in final_prompt.lower():
-        state["pending_field"] = "age"
-    else:
-        state["pending_field"] = None
-
-    USER_STATE[user_id] = state
-
-    # 6) Call OpenAI with final_prompt
+    # We call openai to get a short response
     openai_reply = query_openai_model(final_prompt)
 
     return {
@@ -212,10 +237,11 @@ def profile_chat(req: ProfileChatRequest):
         "profile_data": updated_profile
     }
 
-#############################################
-# Run Locally
-#############################################
+
+##################################################
+# Run if local
+##################################################
 if __name__ == "__main__":
     import uvicorn
-    print("Starting Profile Chat Server on 0.0.0.0:8001")
+    print("🚀 Starting on 0.0.0.0:8001")
     uvicorn.run(app, host="0.0.0.0", port=8001)
