@@ -9,6 +9,19 @@ import json
 # Import authentication functions from auth_router
 from .auth import get_current_user
 
+# Define the order of fields for the runseries endpoint
+FIELD_ORDER = [
+    "age",
+    "weekly_mileage",
+    "race_type",
+    "best_time",
+    "best_time_date",
+    "last_time",
+    "last_time_date",
+    "target_race",
+    "target_time"
+]
+
 profile_router = APIRouter()
 
 class UserProfileUpdate(BaseModel):
@@ -25,6 +38,49 @@ class UserProfileUpdate(BaseModel):
     injury_history: Optional[List[str]] = None
     nutrition: Optional[List[str]] = None
     last_check_in: Optional[date] = None
+
+def get_profile_value_by_index(profile_data: dict, index: int) -> dict:
+    """
+    Given a number (1-10), retrieves the corresponding field and value from a user profile JSON.
+
+    Args:
+        profile_data (dict): The user profile dictionary.
+        index (int): A number from 1 to 10 indicating which field to retrieve.
+
+    Returns:
+        dict: JSON with the selected field name and its value.
+    """
+    if not (1 <= index <= 10):
+        return {"error": "Index must be between 1 and 10"}
+
+    # Get the corresponding field name from the list
+    field_name = FIELD_ORDER[index - 1]  # Adjust for zero-based index
+
+    # Retrieve the value from the profile data
+    field_value = profile_data.get(field_name, None)
+
+    # Return the selected field and its value as JSON
+    return {"field_name": field_name, "value": field_value}
+
+def get_user_profile_from_api(email: str):
+    """
+    Calls the `/profile-update/download-profile` endpoint to fetch the user's profile.
+    
+    Args:
+        email (str): The user's email.
+
+    Returns:
+        dict: User profile data or error message.
+    """
+    params = {"email": email}  # Query parameter
+    try:
+        response = requests.get(DOWNLOAD_PROFILE_URL, params=params)
+        if response.status_code == 200:
+            return response.json()  # Return profile JSON
+        else:
+            return {"error": f"❌ {response.status_code}: {response.text}"}
+    except Exception as e:
+        return {"error": f"❌ Exception: {str(e)}"}
 
 @profile_router.get("/profile")
 def get_profile(current_user: str = Depends(get_current_user)):
@@ -67,28 +123,7 @@ def update_profile(profile_data: UserProfileUpdate, current_user: str = Depends(
     updated_profile = get_user_profile(user['id'])
     return updated_profile
 
-def get_profile_value_by_index(profile_data: dict, index: int) -> dict:
-    """
-    Given a number (1-10), retrieves the corresponding field and value from a user profile JSON.
 
-    Args:
-        profile_data (dict): The user profile dictionary.
-        index (int): A number from 1 to 10 indicating which field to retrieve.
-
-    Returns:
-        dict: JSON with the selected field name and its value.
-    """
-    if not (1 <= index <= 10):
-        return {"error": "Index must be between 1 and 10"}
-
-    # Get the corresponding field name from the list
-    field_name = FIELD_ORDER[index - 1]  # Adjust for zero-based index
-
-    # Retrieve the value from the profile data
-    field_value = profile_data.get(field_name, None)
-
-    # Return the selected field and its value as JSON
-    return {"field_name": field_name, "value": field_value}
 
 @profile_router.post("/profile-chat")
 async def profile_chat(request: ChatRequest, current_user: str = Depends(get_current_user)):
@@ -179,9 +214,8 @@ async def test_profile_router():
 def run_series_endpoint(email: str):
     run = 1  # Start from 1
 
-    profile = get_user_profile_from_api(email)
-
     for _ in range(1):  # Runs the series once
+        profile = get_user_profile_from_api(email)
         parsed_profile = get_profile_value_by_index(profile, run)
         # msg_to_user = llm_get_age(parsed_profile)
         # new_value = parse_value_for_field("age", parsed_profile)
@@ -190,4 +224,6 @@ def run_series_endpoint(email: str):
         run += 1
         print(parsed_profile)
         print(f"✅ Run {run - 1} Completed! Moving to Run {run}.\n")
+        # Simply return the parsed_profile object
+        return parsed_profile
 
