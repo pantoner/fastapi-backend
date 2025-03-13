@@ -438,7 +438,44 @@ def profile_chat():
         return {"status": "error", "details": error_msg}
 
 
+def get_profile_value_by_index(profile_data: dict, index: int) -> dict:
+    """
+    Given a number (1-10), retrieves the corresponding field and value from a user profile JSON.
 
+    Args:
+        profile_data (dict): The user profile dictionary.
+        index (int): A number from 1 to 10 indicating which field to retrieve.
+
+    Returns:
+        dict: JSON with the selected field name and its value.
+    """
+    if not (1 <= index <= 10):
+        return {"error": "Index must be between 1 and 10"}
+
+    # Get the corresponding field name from the list
+    field_name = FIELD_ORDER[index - 1]  # Adjust for zero-based index
+
+    # Retrieve the value from the profile data
+    field_value = profile_data.get(field_name, None)
+
+    # Return the selected field and its value as JSON
+    return {"field_name": field_name, "value": field_value}
+
+@router.post("/runseries")
+def run_series_endpoint(email: str):
+    run = 1  # Start from 1
+
+    profile = get_user_profile_from_api(email)
+
+    for _ in range(1):  # Runs the series once
+        parsed_profile = get_profile_value_by_index(profile, run)
+        # msg_to_user = llm_get_age(parsed_profile)
+        # new_value = parse_value_for_field("age", parsed_profile)
+        # update_response = update_user_profile_field(user_id=profile["id"], needed_field="age", new_value=new_value)
+
+        run += 1
+        print(parsed_profile)
+        print(f"✅ Run {run - 1} Completed! Moving to Run {run}.\n")
 
 
 ##################################################
