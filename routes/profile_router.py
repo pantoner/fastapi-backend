@@ -67,6 +67,29 @@ def update_profile(profile_data: UserProfileUpdate, current_user: str = Depends(
     updated_profile = get_user_profile(user['id'])
     return updated_profile
 
+def get_profile_value_by_index(profile_data: dict, index: int) -> dict:
+    """
+    Given a number (1-10), retrieves the corresponding field and value from a user profile JSON.
+
+    Args:
+        profile_data (dict): The user profile dictionary.
+        index (int): A number from 1 to 10 indicating which field to retrieve.
+
+    Returns:
+        dict: JSON with the selected field name and its value.
+    """
+    if not (1 <= index <= 10):
+        return {"error": "Index must be between 1 and 10"}
+
+    # Get the corresponding field name from the list
+    field_name = FIELD_ORDER[index - 1]  # Adjust for zero-based index
+
+    # Retrieve the value from the profile data
+    field_value = profile_data.get(field_name, None)
+
+    # Return the selected field and its value as JSON
+    return {"field_name": field_name, "value": field_value}
+
 @profile_router.post("/profile-chat")
 async def profile_chat(request: ChatRequest, current_user: str = Depends(get_current_user)):
     """
@@ -152,7 +175,7 @@ async def test_profile_router():
     return {"message": "Profile router is working"}
 
 
-@router.post("/runseries")
+@profile_router.post("/runseries")
 def run_series_endpoint(email: str):
     run = 1  # Start from 1
 
