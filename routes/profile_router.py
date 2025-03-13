@@ -150,3 +150,21 @@ async def profile_chat(request: ChatRequest, current_user: str = Depends(get_cur
 @profile_router.get("/test")
 async def test_profile_router():
     return {"message": "Profile router is working"}
+
+
+@router.post("/runseries")
+def run_series_endpoint(email: str):
+    run = 1  # Start from 1
+
+    profile = get_user_profile_from_api(email)
+
+    for _ in range(1):  # Runs the series once
+        parsed_profile = get_profile_value_by_index(profile, run)
+        # msg_to_user = llm_get_age(parsed_profile)
+        # new_value = parse_value_for_field("age", parsed_profile)
+        # update_response = update_user_profile_field(user_id=profile["id"], needed_field="age", new_value=new_value)
+
+        run += 1
+        print(parsed_profile)
+        print(f"✅ Run {run - 1} Completed! Moving to Run {run}.\n")
+
