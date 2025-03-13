@@ -5,9 +5,12 @@ from datetime import date
 from db import get_user_profile, save_user_profile, get_user_by_email
 from models import ChatRequest, UserProfileUpdate
 import json
+import requests
 
 # Import authentication functions from auth_router
 from .auth import get_current_user
+
+DOWNLOAD_PROFILE_URL = "http://your-api-domain.com/profile-update/download-profile"  # Update with your actual URL
 
 # Define the order of fields for the runseries endpoint
 FIELD_ORDER = [
@@ -214,16 +217,16 @@ async def test_profile_router():
 def run_series_endpoint(email: str):
     run = 1  # Start from 1
 
-    for _ in range(1):  # Runs the series once
-        profile = get_user_profile_from_api(email)
-        parsed_profile = get_profile_value_by_index(profile, run)
-        # msg_to_user = llm_get_age(parsed_profile)
-        # new_value = parse_value_for_field("age", parsed_profile)
-        # update_response = update_user_profile_field(user_id=profile["id"], needed_field="age", new_value=new_value)
+    # for _ in range(1):  # Runs the series once
+    profile = get_user_profile_from_api(email)
+    parsed_profile = get_profile_value_by_index(profile, run)
+    # msg_to_user = llm_get_age(parsed_profile)
+    # new_value = parse_value_for_field("age", parsed_profile)
+    # update_response = update_user_profile_field(user_id=profile["id"], needed_field="age", new_value=new_value)
 
-        run += 1
-        print(parsed_profile)
-        print(f"✅ Run {run - 1} Completed! Moving to Run {run}.\n")
-        # Simply return the parsed_profile object
-        return parsed_profile
+    # run += 1
+    print(parsed_profile)
+    print(f"✅ Run {run - 1} Completed! Moving to Run {run}.\n")
+    # Simply return the parsed_profile object
+    return parsed_profile
 
